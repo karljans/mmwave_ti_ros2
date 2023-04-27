@@ -5,6 +5,8 @@ from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import IncludeLaunchDescription
 from launch.actions import TimerAction, RegisterEventHandler
 
 from launch.event_handlers import OnProcessExit
@@ -41,7 +43,7 @@ def generate_launch_description():
         node_name='mmWaveCommSrvNode',
         output='screen',
         parameters=[{
-            "command_port": "/dev/ttyUSB0",
+            "command_port": "/dev/mmWave_00ED33DD_00",
             "command_rate": 115200,
             "mmWaveCLI_name": "/mmWaveCLI",
         }],
@@ -54,7 +56,7 @@ def generate_launch_description():
         remappings=[
             # ('cloud_in', ['/cloud']),
             ('cloud', ['/ti_mmwave/radar_scan_pcl']),
-            ('scan', ['/radar_scan']),
+            # ('scan', ['/radar_scan']),
         ],
         parameters=[{
             'target_frame': 'scan_frame',
@@ -65,7 +67,7 @@ def generate_launch_description():
             'angle_max': 1.5707,  # M_PI/2
             'angle_increment': 0.0087,  # M_PI/360.0
             'scan_time': 0.3333,
-            'range_min': 0.0,
+            'range_min': 0.2,
             'range_max': 2.0,
             'use_inf': False,
             'inf_epsilon': 1.0
@@ -83,7 +85,14 @@ def generate_launch_description():
         package='tf2_ros',
         node_executable='static_transform_publisher',
         node_name='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'ti_mmwave_0']
+        arguments=['0.12', '0', '0', '0', '0', '3.1415', 'base_link', 'ti_mmwave_0']
+    )
+
+    static_transform_publisher_laser_link = Node(
+        package='tf2_ros',
+        node_executable='static_transform_publisher',
+        node_name='static_transform_publisher',
+        arguments=['0', '0', '0', '3.1415', '0', '0', 'base_link', 'laser']
     )
 
     rviz2 = Node(
@@ -106,7 +115,7 @@ def generate_launch_description():
                     node_plugin='ti_mmwave_ros2_pkg::mmWaveDataHdl',
                     node_name='mmWaveDataHdl',
                     parameters=[{
-                        "data_port": "/dev/ttyUSB1",
+                        "data_port": "/dev/mmWave_00ED33DD_01",
                         "data_rate": 921600,
                         "frame_id": "ti_mmwave_0",
                         "max_allowed_elevation_angle_deg": 90,
@@ -117,20 +126,33 @@ def generate_launch_description():
             output='screen',
     )
 
+
+    # Rplidar Driver
+    rplidar_ros2_pkg = os.path.join(get_package_share_directory('rplidar_ros2'))
+    serial_port = "/dev/ttyUSB0"
+    rplidar_launch_file = "rplidar_a3_launch.py"
+    #rplidar_launch_file = "rplidar_launch.py"
+    rplidar_driver = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(rplidar_ros2_pkg, 'launch', rplidar_launch_file)),
+        launch_arguments={'serial_port': serial_port}.items()
+    )
+
     return launch.LaunchDescription([
         mmwave_comm_srv_node,
         mmwave_quick_config,
         pointcloud_to_laserscan_node,
         static_transform_publisher,
         static_transform_publisher_base_link,
+        #static_transform_publisher_laser_link,
+        #rplidar_driver,
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=mmwave_quick_config,
                 on_exit=[container],
             )
         ),
-        TimerAction(    
-            period=3.0,
-            actions=[rviz2]
-        ),
+        #TimerAction(    
+        #    period=3.0,
+        #    actions=[rviz2]
+        #),
     ])

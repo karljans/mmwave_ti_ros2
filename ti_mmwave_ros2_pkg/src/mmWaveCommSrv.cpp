@@ -46,7 +46,7 @@ mmWaveCommSrv::mmWaveCommSrv(const rclcpp::NodeOptions &options)
 }
 
 void mmWaveCommSrv::onInit() {
-  mySerialPort = this->declare_parameter("command_port", "/dev/ttyUSB0");
+  mySerialPort = this->declare_parameter("command_port", "/dev/ttyACM0");
   myBaudRate = this->declare_parameter("command_rate", 115200);
   mmWaveCLIName = this->declare_parameter("mmWaveCLI_name", "mmWaveCLI");
 
@@ -82,9 +82,9 @@ void mmWaveCommSrv::onInit() {
   RCLCPP_INFO(this->get_logger(), "mmWaveCommsrv: Finished onInit function");
 }
 
-void mmWaveCommSrv::commSrv_cb(
+bool mmWaveCommSrv::commSrv_cb(
     std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request> req,
-    std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res) {
+    std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res) {  // *********************************************************
 
   RCLCPP_DEBUG(this->get_logger(),
                "mmWaveCommSrv: Port is \"%s\" and baud rate is %d",
@@ -115,7 +115,7 @@ void mmWaveCommSrv::commSrv_cb(
                   "mmWaveCommSrv: Port could not be opened. Port is \"%s\" and "
                   "baud rate is %d",
                   mySerialPort.c_str(), myBaudRate);
-      //   return false;
+      return false;  // *********************************************************
     }
   }
 
@@ -143,6 +143,8 @@ void mmWaveCommSrv::commSrv_cb(
               res->resp.c_str());
 
   mySerialObject.close();
+
+  return true; // *********************************************************
 }
 
 } // namespace ti_mmwave_ros2_pkg

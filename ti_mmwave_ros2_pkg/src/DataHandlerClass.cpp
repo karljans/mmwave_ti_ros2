@@ -325,8 +325,11 @@ void *DataUARTHandler::sortIncomingData(void) {
   float maxElevationAngleRatioSquared;
   float maxAzimuthAngleRatio;
 
-  boost::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> RScan(
-      new pcl::PointCloud<pcl::PointXYZI>);
+  // boost::shared_ptr<pcl::PointCloud<pcl::PointXYZI>> RScan(
+  //     new pcl::PointCloud<pcl::PointXYZI>);
+
+  boost::shared_ptr<pcl::PointCloud<radar_pcl::PointXYZIVR>> RScan(
+                              new pcl::PointCloud<radar_pcl::PointXYZIVR>);
   sensor_msgs::msg::PointCloud2 output_pointcloud;
   ti_mmwave_ros2_interfaces::msg::RadarScan radarscan;
 
@@ -506,7 +509,7 @@ void *DataUARTHandler::sortIncomingData(void) {
                  sizeof(mmwData.objOut.z));
           currentDatap += (sizeof(mmwData.objOut.z));
 
-          float temp[7];
+          float temp[8];
 
           temp[0] = (float)mmwData.objOut.x;
           temp[1] = (float)mmwData.objOut.y;
@@ -539,6 +542,8 @@ void *DataUARTHandler::sortIncomingData(void) {
               temp[2]; // ROS standard coordinate system Z-axis is up which is
                        // the same as mmWave sensor Z-axis
           RScan->points[i].intensity = temp[5];
+          RScan->points[i].velocity = temp[7];
+          RScan->points[i].range = temp[4];
 
           radarscan.header.frame_id = frameID;
           radarscan.header.stamp = rclcpp::Clock().now();
@@ -554,49 +559,61 @@ void *DataUARTHandler::sortIncomingData(void) {
           radarscan.intensity = temp[5];
         } else { // SDK version is 3.x+
           // get object x-coordinate (meters)
-          memcpy(&mmwData.newObjOut.x, &currentBufp->at(currentDatap),
-                 sizeof(mmwData.newObjOut.x));
-          currentDatap += (sizeof(mmwData.newObjOut.x));
+          memcpy(&mmwData.objOut_cartes.x, &currentBufp->at(currentDatap),
+                 sizeof(mmwData.objOut_cartes.x));
+          currentDatap += (sizeof(mmwData.objOut_cartes.x));
 
           // get object y-coordinate (meters)
-          memcpy(&mmwData.newObjOut.y, &currentBufp->at(currentDatap),
-                 sizeof(mmwData.newObjOut.y));
-          currentDatap += (sizeof(mmwData.newObjOut.y));
+          memcpy(&mmwData.objOut_cartes.y, &currentBufp->at(currentDatap),
+                 sizeof(mmwData.objOut_cartes.y));
+          currentDatap += (sizeof(mmwData.objOut_cartes.y));
 
           // get object z-coordinate (meters)
-          memcpy(&mmwData.newObjOut.z, &currentBufp->at(currentDatap),
-                 sizeof(mmwData.newObjOut.z));
-          currentDatap += (sizeof(mmwData.newObjOut.z));
+          memcpy(&mmwData.objOut_cartes.z, &currentBufp->at(currentDatap),
+                 sizeof(mmwData.objOut_cartes.z));
+          currentDatap += (sizeof(mmwData.objOut_cartes.z));
 
           // get object velocity (m/s)
-          memcpy(&mmwData.newObjOut.velocity, &currentBufp->at(currentDatap),
-                 sizeof(mmwData.newObjOut.velocity));
-          currentDatap += (sizeof(mmwData.newObjOut.velocity));
+          memcpy(&mmwData.objOut_cartes.velocity, &currentBufp->at(currentDatap),
+                 sizeof(mmwData.objOut_cartes.velocity));
+          currentDatap += (sizeof(mmwData.objOut_cartes.velocity));
 
           // Map mmWave sensor coordinates to ROS coordinate system
           RScan->points[i].x =
-              mmwData.newObjOut.y; // ROS standard coordinate system X-axis is
+              mmwData.objOut_cartes.y; // ROS standard coordinate system X-axis is
                                    // forward which is the mmWave sensor Y-axis
           RScan->points[i].y =
-              -mmwData.newObjOut.x; // ROS standard coordinate system Y-axis is
+              -mmwData.objOut_cartes.x; // ROS standard coordinate system Y-axis is
                                     // left which is the mmWave sensor -(X-axis)
           RScan->points[i].z =
-              mmwData.newObjOut
-                  .z; // ROS standard coordinate system Z-axis is up which is
+              mmwData.objOut_cartes.z; // ROS standard coordinate system Z-axis is up which is
                       // the same as mmWave sensor Z-axis
+          RScan->points[i].velocity = mmwData.objOut_cartes.velocity;
+          RScan->points[i].range = sqrt(radarscan.x*radarscan.x +
+              radarscan.y*radarscan.y + radarscan.z*radarscan.z);
+
+
 
           radarscan.header.frame_id = frameID;
           radarscan.header.stamp = rclcpp::Clock().now();
 
           radarscan.point_id = i;
-          radarscan.x = mmwData.newObjOut.y;
-          radarscan.y = -mmwData.newObjOut.x;
-          radarscan.z = mmwData.newObjOut.z;
+          radarscan.x = mmwData.objOut_cartes.y;
+          radarscan.y = -mmwData.objOut_cartes.x;
+          radarscan.z = mmwData.objOut_cartes.z;
           // radarscan.range = temp[4];
-          radarscan.velocity = mmwData.newObjOut.velocity;
+          radarscan.velocity = mmwData.objOut_cartes.velocity;
           // radarscan.doppler_bin = tmp;
           // radarscan.bearing = temp[6];
           // radarscan.intensity = temp[5];
+          radarscan.range = sqrt(radarscan.x*radarscan.x +
+                  radarscan.y*radarscan.y + radarscan.z*radarscan.z);
+          radarscan.doppler_bin = (uint16_t)(
+              mmwData.detList.dopplerIdx + nd / 2);
+          radarscan.bearing = std::atan2(-mmwData.objOut_cartes.x,
+              mmwData.objOut_cartes.y) / M_PI * 180;
+
+          radarscan.intensity = (float) mmwData.sideInfo.snr / 10.0;
 
           // For SDK 3.x, intensity is replaced by snr in sideInfo and is parsed
           // in the READ_SIDE_INFO code
@@ -760,10 +777,13 @@ void *DataUARTHandler::sortIncomingData(void) {
           // ROS_INFO("mmwData.numObjOut after = %d", mmwData.numObjOut);
           // ROS_INFO("DataUARTHandler Sort Thread: number of obj = %d",
           // mmwData.numObjOut );
-          pcl::PCLPointCloud2 cloud_ROI;
-          pcl::toPCLPointCloud2(*RScan, cloud_ROI);
-          pcl_conversions::fromPCL(cloud_ROI, output_pointcloud);
-          DataUARTHandler_pub->publish(output_pointcloud);
+          pcl::PCLPointCloud2 cloud_ROI; //******************************
+          pcl::toPCLPointCloud2(*RScan, cloud_ROI); //******************************
+          pcl_conversions::fromPCL(cloud_ROI, output_pointcloud); //******************************
+          DataUARTHandler_pub->publish(output_pointcloud); //******************************
+          // DataUARTHandler_pub->publish(*RScan);
+          // DataUARTHandler_pub->publish(RScan);
+
         }
 
         // ROS_INFO("DataUARTHandler Sort Thread : CHECK_TLV_TYPE state says

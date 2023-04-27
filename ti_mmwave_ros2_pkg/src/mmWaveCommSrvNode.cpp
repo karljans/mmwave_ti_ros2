@@ -66,7 +66,7 @@ private:
 
 public:
   mmWaveCommSrv() : rclcpp::Node("mmWaveCommSrvNode") {
-    mySerialPort = this->declare_parameter("command_port", "/dev/ttyUSB0");
+    mySerialPort = this->declare_parameter("command_port", "/dev/ttyACM0");
     myBaudRate = this->declare_parameter("command_rate", 115200);
     mmWaveCLIName = this->declare_parameter("mmWaveCLI_name", "mmWaveCLI");
 
