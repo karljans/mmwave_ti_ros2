@@ -14,6 +14,8 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
+    ns = "can"
+    
     cfg_file = "xwr18xx_profile_2023_04_06T14_24_07_323.cfg"
     pkg_dir_path = get_package_share_directory('ti_mmwave_ros2_pkg')
     cfg_file_path = os.path.join(pkg_dir_path, 'cfg', cfg_file)
@@ -23,9 +25,11 @@ def generate_launch_description():
         executable='mmWaveQuickConfig',
         name='mmwave_quick_config',
         output='screen',
+        namespace= ns,
         arguments=[cfg_file_path],
         parameters=[{
-            "mmWaveCLI_name": "/mmWaveCLI",
+            "mmWaveCLI_name": "/"+ns+"/mmWaveCLI",
+            "namespace": ns,
         }],
     )
 
@@ -33,18 +37,19 @@ def generate_launch_description():
         package='ti_mmwave_ros2_pkg',
         executable='mmwave_comm_srv_node',
         name='mmWaveCommSrvNode',
+        namespace= ns,
         output='screen',
         parameters=[{
             "command_port": "/dev/ttyACM0",
             "command_rate": 115200,
-            "mmWaveCLI_name": "/mmWaveCLI",
+            "mmWaveCLI_name": "/"+ns+"/mmWaveCLI",
         }],
     )
 
     """Generate launch description with multiple components."""
     container = ComposableNodeContainer(
-            name='my_container',
-            namespace='',
+            name='radar_container',
+            namespace= '',
             package='rclcpp_components',
             executable='component_container',
             composable_node_descriptions=[
@@ -52,7 +57,9 @@ def generate_launch_description():
                     package='ti_mmwave_ros2_pkg',
                     plugin='ti_mmwave_ros2_pkg::mmWaveDataHdl',
                     name='mmWaveDataHdl',
+                    namespace= ns,
                     parameters=[{
+                        "namespace": ns,
                         "data_port": "/dev/ttyACM1",
                         "data_rate": 921600,
                         "frame_id": "ti_mmwave_0",
@@ -60,6 +67,7 @@ def generate_launch_description():
                         "max_allowed_azimuth_angle_deg": 90,
                     }]
                 ),
+
             ],
             output='screen',
     )
