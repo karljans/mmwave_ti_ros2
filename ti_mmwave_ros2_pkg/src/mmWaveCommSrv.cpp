@@ -50,8 +50,8 @@ void mmWaveCommSrv::onInit() {
   myBaudRate = this->declare_parameter("command_rate", 115200);
   mmWaveCLIName = this->declare_parameter("mmWaveCLI_name", "mmWaveCLI");
 
-  // 모든 parameter는 우선 여기서 다 설정한다.
-  // 필요한 node는 get_parameter srv call로 얻어간다.
+  // All parameters are set here first.
+  // The required node is obtained with the get_parameter srv call.
   this->declare_parameter("/ti_mmwave/numAdcSamples", 240);
   this->declare_parameter("/ti_mmwave/numLoops", 16);
 
@@ -69,10 +69,8 @@ void mmWaveCommSrv::onInit() {
   this->declare_parameter("/ti_mmwave/max_doppler_vel", 9.90139);
   this->declare_parameter("/ti_mmwave/doppler_vel_resolution", 0.618837);
 
-  RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_port = %s",
-              mySerialPort.c_str());
-  RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_rate = %d",
-              myBaudRate);
+  RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_port = %s", mySerialPort.c_str());
+  RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_rate = %d", myBaudRate);
 
   // service client
   commSrv = create_service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>(
@@ -84,24 +82,20 @@ void mmWaveCommSrv::onInit() {
 
 bool mmWaveCommSrv::commSrv_cb(
     std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request> req,
-    std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res) {  // *********************************************************
+    std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res) {
 
-  RCLCPP_DEBUG(this->get_logger(),
-               "mmWaveCommSrv: Port is \"%s\" and baud rate is %d",
+  RCLCPP_DEBUG(this->get_logger(), "mmWaveCommSrv: Port is \"%s\" and baud rate is %d",
                mySerialPort.c_str(), myBaudRate);
 
   /*Open Serial port and error check*/
-  serial::Serial mySerialObject("", myBaudRate,
-                                serial::Timeout::simpleTimeout(1000));
+  serial::Serial mySerialObject("", myBaudRate, serial::Timeout::simpleTimeout(1000));
   mySerialObject.setPort(mySerialPort.c_str());
   try {
     mySerialObject.open();
   } catch (std::exception &e1) {
     RCLCPP_INFO(this->get_logger(),
-                "mmWaveCommSrv: Failed to open User serial port with error: %s",
-                e1.what());
-    RCLCPP_INFO(this->get_logger(),
-                "mmWaveCommSrv: Waiting 20 seconds before trying again...");
+                "mmWaveCommSrv: Failed to open User serial port with error: %s", e1.what());
+    RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: Waiting 20 seconds before trying again...");
     try {
       // Wait 20 seconds and try to open serial port again
       rclcpp::sleep_for(std::chrono::seconds(20));
@@ -109,13 +103,11 @@ bool mmWaveCommSrv::commSrv_cb(
     } catch (std::exception &e2) {
       RCLCPP_ERROR(this->get_logger(),
                    "mmWaveCommSrv: Failed second time to open User serial "
-                   "port, error: %s",
-                   e1.what());
+                   "port, error: %s", e1.what());
       RCLCPP_INFO(this->get_logger(),
                   "mmWaveCommSrv: Port could not be opened. Port is \"%s\" and "
-                  "baud rate is %d",
-                  mySerialPort.c_str(), myBaudRate);
-      return false;  // *********************************************************
+                  "baud rate is %d", mySerialPort.c_str(), myBaudRate);
+      return false; 
     }
   }
 
@@ -129,8 +121,7 @@ bool mmWaveCommSrv::commSrv_cb(
   }
 
   /*Send out command received from the client*/
-  RCLCPP_INFO(this->get_logger(),
-              "mmWaveCommSrv: Sending command to sensor: '%s'",
+  RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: Sending command to sensor: '%s'",
               req->comm.c_str());
 
   req->comm.append("\n");
@@ -138,16 +129,15 @@ bool mmWaveCommSrv::commSrv_cb(
 
   /*Read output from mmwDemo*/
   mySerialObject.readline(res->resp, 1024, ":/>");
-  RCLCPP_INFO(this->get_logger(),
-              "mmWaveCommSrv: Received response from sensor: '%s'",
+  RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: Received response from sensor: '%s'",
               res->resp.c_str());
 
   mySerialObject.close();
 
-  return true; // *********************************************************
+  return true;
 }
 
-} // namespace ti_mmwave_ros2_pkg
+}
 
 #include "rclcpp_components/register_node_macro.hpp"
 

@@ -85,23 +85,7 @@ void mmWaveDataHdl::onInit() {
   auto marker_pub =
       create_publisher<Marker>(ns + "/ti_mmwave/radar_scan_markers", 100);
 
-  // 여기서 교착이 발생한다.
-  //   DataUARTHandler DataHandler = DataUARTHandler();
-
-  //   DataHandler.getPublishers(DataUARTHandler_pub, radar_scan_pub,
-  //   marker_pub);
-
-  //   DataHandler.setParameter(nr, nd, ntx, fs, fc, BW, PRI, tfr, max_range,
-  //   vrange,
-  //                            max_vel, vvel);
-
-  //   DataHandler.setFrameID((char *)myFrameID.c_str());
-  //   DataHandler.setUARTPort((char *)mySerialPort.c_str());
-  //   DataHandler.setBaudRate(myBaudRate);
-  //   DataHandler.setMaxAllowedElevationAngleDeg(myMaxAllowedElevationAngleDeg);
-  //   DataHandler.setMaxAllowedAzimuthAngleDeg(myMaxAllowedAzimuthAngleDeg);
-  //   DataHandler.start();
-
+// This is where the deadlock occurs.
   DataHandler = std::make_shared<DataUARTHandler>();
   DataHandler->setNamespace(ns);
   DataHandler->onInit();
@@ -114,19 +98,12 @@ void mmWaveDataHdl::onInit() {
   DataHandler->setMaxAllowedAzimuthAngleDeg(myMaxAllowedAzimuthAngleDeg);
 
   rclcpp::sleep_for(std::chrono::milliseconds(200));
-  // rclcpp::spin(DataHandler);
   rclcpp::spin_some(DataHandler);
   DataHandler->start();
-
-  // while (rclcpp::ok()) {
-  //     rclcpp::spin_some(DataHandler);
-  // }
-
   RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: Finished onInit function");
 }
 
-} // namespace ti_mmwave_ros2_pkg
-
+}
 #include "rclcpp_components/register_node_macro.hpp"
 
 // Register the component with class_loader.

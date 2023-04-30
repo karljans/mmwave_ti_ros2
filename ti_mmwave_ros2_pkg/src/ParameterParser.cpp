@@ -41,24 +41,19 @@
 namespace ti_mmwave_ros2_pkg {
 
 ParameterParser::ParameterParser(const rclcpp::NodeOptions &options)
-    : Node("parameter_parser", options) {
-}
+    : Node("parameter_parser", options) {}
 
 void ParameterParser::init(const std::string &ns){
   std::string client_name = "";
-  if(ns.compare("") != 0)
-    client_name = "/" + ns + "/mmWaveCommSrvNode";
-  else
-    client_name = "/mmWaveCommSrvNode";
+  if(ns.compare("") != 0) {client_name = "/" + ns + "/mmWaveCommSrvNode"; }
+  else { client_name = "/mmWaveCommSrvNode"; }
 
   std::cout << "ParameterParser - client_name : " << client_name << std::endl;
-  parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(
-      this, client_name);
+  parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(this, client_name);
 
   while (!parameters_client->wait_for_service(std::chrono::seconds(1))) {
     if (!rclcpp::ok()) {
-      RCLCPP_ERROR(this->get_logger(),
-                   "client interrupted while waiting for service to appear.");
+      RCLCPP_ERROR(this->get_logger(), "client interrupted while waiting for service to appear.");
       exit(0);
     }
     RCLCPP_INFO(this->get_logger(), "wwaiting for service to appear...");
@@ -67,8 +62,6 @@ void ParameterParser::init(const std::string &ns){
 
 void ParameterParser::ParamsParser(const std::string &srv) {
 
-  //   ROS_ERROR("%s",srv.request.comm.c_str());
-  //   ROS_ERROR("%s",srv.response.resp.c_str());
   std::vector<std::string> v;
   std::string s = srv;
   std::istringstream ss(s);
@@ -166,8 +159,7 @@ void ParameterParser::CalParams() {
   auto parameters_future = parameters_client->set_parameters(
       {nr_param, nd_param, ntx_param, fs_param, fc_param, BW_param, PRI_param,
        tfr_param, max_range_param, vrange_param, max_vel_param, vvel_param},
-      std::bind(&ParameterParser::callbackGlobalParam, this,
-                std::placeholders::_1));
+      std::bind(&ParameterParser::callbackGlobalParam, this, std::placeholders::_1));
 
   std::cout << "numAdcSamples : " << nr << std::endl;
   std::cout << "numLoops : " << nd << std::endl;
@@ -190,7 +182,7 @@ void ParameterParser::callbackGlobalParam(
   rclcpp::shutdown();
 }
 
-} // namespace ti_mmwave_ros2_pkg
+}
 
 #include "rclcpp_components/register_node_macro.hpp"
 
