@@ -29,7 +29,7 @@
 
 > I recommend to check with [Demo Visualizer](https://dev.ti.com/gallery/view/mmwave/mmWave_Demo_Visualizer/ver/3.6.0/) before launching ROS 2 demo
 
-3. Install apt Dependencies 
+3. Install apt Dependencies
 
 ```bash
 # install linux pkgs
@@ -39,7 +39,7 @@ sudo apt install ros-foxy-composition -y
 ```
 
 4. Clone this repo and build ROS 2 packages
-  
+
 ```bash
 # cd `<workspace dir>/src`
 git clone https://github.com/canersu/mmwave_ti_ros.git
@@ -67,15 +67,21 @@ sudo ln -s /usr/lib/aarch64-linux-gnu/libboost_system.so.1.65.1 /usr/lib/libboos
 5. Enable command and data ports on Linux:
 
 ```bash
-# validate usb connection
-$ ls -l /dev/ | grep mmWave
-mmWave_00ED33DD_00 -> ttyUSB0
-mmWave_00ED33DD_01 -> ttyUSB1
+# create udev rule for USB port
+cd /etc/udev/rules.d/ && sudo touch 01-disable-mm-ttyACM.rules
+sudo cp scripts/01-disable-mm-ttyACM.rules /etc/udev/rules.d/
+sudo nano 01-disable-mm-ttyACM.rules
 
-# give permission to usb pins
-sudo chmod 666 /dev/ttyUSB0
-sudo chmod 666 /dev/ttyUSB1
+# append this into the file
+KERNEL=="ttyACM*", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# to install, enter the following commands
+sudo udevadm control --reload-rules
+
+# add user to dialout
+sudo adduser <your_username> dialout
 ```
+
 
 > Note: If multiple sensors are used, enable additional ports `/dev/ttyACM2` and `/dev/ttyACM3`, etc. the same as this step.
 
@@ -88,41 +94,47 @@ ros2 launch ti_mmwave_ros2_pkg foxy_composition.launch.py
 > Bad news. Main node uses pthread instead of ROS 2 lifecycle. Therefore, you must kill process manually for clearly exit program.
 
 ```bash
-kill -9 \`ps faux | grep ti_mmwave_ros2_ | awk '{print $2}'\`
-kill -9 \`ps faux | grep component | awk '{print $2}'\`
+# To add the namespace for all of the service and topics,
+# modify the file ti_mmwave_ros2_pkg/launch/radar_bringup.launch.py
+# ns parameter.
+ns = ""
 ```
 
 ---
 
 ### Based on updates from Dr. Leo Zhang (University of Arizona)
 
-| Contributor  | Updated Content |
-| ------------- | ------------- |
-| Kim Soo Young  | Add support for ROS 2. SDK version: 3.5.0.4.  |
-| Dr. Zhang  | Add support for XWR18XX devices. SDK version: 3.2.0.4.  |
-| Allison Wendell  | Add support for XWR68XX devices. SDK version: 3.2.0.4 |
+| Contributor     | Updated Content                                        |
+| --------------- | ------------------------------------------------------ |
+| Kim Soo Young   | Add support for ROS 2. SDK version: 3.5.0.4.           |
+| Dr. Zhang       | Add support for XWR18XX devices. SDK version: 3.2.0.4. |
+| Allison Wendell | Add support for XWR68XX devices. SDK version: 3.2.0.4  |
 
 > Initially derived from TI's origin ROS package in Industrial Toolbox 2.3.0 (new version available [Industrial Toolbox 2.5.2](http://dev.ti.com/tirex/#/?link=Software%2FmmWave%20Sensors%2FIndustrial%20Toolbox)).
 
 ---
 
 ### Differences from origin TI's version:
+
 1. Added all radar parameters from calculations and can be read from `rosparam get`.
 2. Added Doppler data from detecting targets and form a customized ROS message `/ti_mmwave/radar_scan`.
 3. Added support for multiple radars working together.
 4. Added support for camera overlay (for sensor fusion).
 5. Working with xWR1443 and xWR1642 ES1.0 and ES2.0 (ES1.0 is deprecated from TI)
-   
 
 ### Available devices:
+
 - TI mmWave xWR1443BOOST
 - TI mmWave xWR1642BOOST
 - TI mmWave xWR1642BOOST ES2.0/3.0 EVM (not tested)
 - TI mmWave xWR1642BOOST ES2.0 EVM
 - TI mmWave AWR1843BOOST ES1.0 EVM
 - TI mmWave IWR6843ISK ES1.0 EVM **(verified)**
+
 ---
+
 ### Message format:
+
 ```
 header: 
   seq: 6264
@@ -140,28 +152,32 @@ doppler_bin: 8            # Doppler bin location of the point (total bins = num 
 bearing: 38.6818885803    # Radar measured angle in degrees (right positive)
 intensity: 13.6172780991  # Radar measured intensity in dB
 ```
+
 ---
+
 ### Troubleshooting
-1.
+
 ```
 mmWaveCommSrv: Failed to open User serial port with error: IO Exception (13): Permission denied
 mmWaveCommSrv: Waiting 20 seconds before trying again...
 ```
+
 This happens when serial port is called without superuser permission, do the following steps:
+
 ```
 sudo chmod 666 /dev/ttyACM0
 sudo chmod 666 /dev/ttyACM1
 ```
-2.
+
 ```
 mmWaveQuickConfig: Command failed (mmWave sensor did not respond with 'Done')
 mmWaveQuickConfig: Response: 'sensorStop
 '?`????`????`???~' is not recognized as a CLI command
 mmwDemo:/>'
 ```
+
 When this happens, re-run the command you send to sensor. If it continues, shut down and restart the sensor.
 
-3.
 ```
 terminate called after throwing an instance of 'serial::SerialException'
 ```
@@ -169,13 +185,16 @@ terminate called after throwing an instance of 'serial::SerialException'
 This means unstable serial connection, change use cable or usb-hub.
 
 ---
+
 ### Multiple devices support (dual AWR1642 ES2.0 EVM):
+
 1. Connect two devices and try `ll /dev/serial/by-id` or `ls /dev`. In this case, `/dev/ttyACM0` to `/dev/ttyACM3` should shown.
 2. To avoid serial port confliction, you need to launch devices separately. So for first device (it will open rviz):
 
 ```
 roslaunch ti_mmwave_rospkg multi_1642_0.launch 
 ```
+
 3. Change radars' location in first six arguments `<node pkg="tf" type="static_transform_publisher" name="radar_baselink_0" args="0 0 0 0 0 0 ti_mmwave_pcl ti_mmwave_0 100"/>` (stands for x,y,z for positions in meters and yaw, pitch, roll for angles in radians) in launch file `multi_1642_1.launch`. And launch second device:
 
 ```
@@ -188,6 +207,6 @@ Note: As serial connection and the original code, you need to launch devices sep
 
 ### TODO
 
-- [ ] Multi Sensor Documentation 
+- [ ] Multi Sensor Documentation
 - [ ] Navigation Usage Documentation
 - [ ] Camera overlay support
