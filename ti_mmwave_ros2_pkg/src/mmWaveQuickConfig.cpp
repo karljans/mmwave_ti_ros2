@@ -47,11 +47,11 @@
 
 #include "ti_mmwave_ros2_pkg/ParameterParser.h"
 
-// 1. config 파일을 읽고 파싱한다.
-// 2. 한줄씩 service server에게 request한다.
-// 3. server는 serial read & write를 하는데 사실 둘은 같은 값이다.
-// 4. write된 값을 request로 받는다.
-// 5. request값을 parameter parser가 받아서 매개변수를 설정한다.
+// 1. Read and parse the config file.
+// 2. make a line-by-line request to the service server.
+// 3. server does serial read & write, which are actually the same value.
+// 4. Receive the written value as request.
+// 5. The parameter parser receives the request and sets the parameters.
 int main(int argc, char **argv) {
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
@@ -62,12 +62,10 @@ int main(int argc, char **argv) {
 
   if (argc < 3) {
     std::cout << "mmWaveQuickConfig: usage: mmWaveQuickConfig "
-                 "/file_directory/params.cfg"
-              << std::endl;
+                 "/file_directory/params.cfg" << std::endl;
     return 1;
   } else
-    std::cout
-        << "mmWaveQuickConfig: Configuring mmWave device using config file: "
+    std::cout << "mmWaveQuickConfig: Configuring mmWave device using config file: "
         << argv[1] << std::endl;
 
   auto node = rclcpp::Node::make_shared("mmWaveQuickConfig");
@@ -91,8 +89,7 @@ int main(int argc, char **argv) {
     RCLCPP_INFO(node->get_logger(), "waiting for service to appear...");
   }
 
-  auto request =
-      std::make_shared<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request>();
+  auto request = std::make_shared<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request>();
 
   std::ifstream myParams;
 
@@ -114,33 +111,24 @@ int main(int argc, char **argv) {
       // Ignore comment lines (first non-space char is '%') or blank lines
       if (!(std::regex_match(request->comm, std::regex("^\\s*%.*")) ||
             std::regex_match(request->comm, std::regex("^\\s*")))) {
-        // ROS_INFO("mmWaveQuickConfig: Sending command: '%s'",
-        // request->comm.c_str() );
 
         std::cout << "request->comm : " << request->comm << std::endl;
         auto result_future = client->async_send_request(request);
 
-        // foxy : rclcpp::FutureReturnCode::SUCCESS
-        // eloquent : rclcpp::executor::FutureReturnCode::SUCCESS
         if (rclcpp::spin_until_future_complete(node, result_future) !=
             rclcpp::executor::FutureReturnCode::SUCCESS) {
           RCLCPP_ERROR(node->get_logger(), "service call failed :(");
-          // remove_pending_request => not in eloquent
-          // client->remove_pending_request(result_future);
           return 1;
         }
         auto result = result_future.get();
 
         if (result != nullptr) {
           if (std::regex_search(result->resp, std::regex("Done"))) {
-            // ROS_INFO("mmWaveQuickConfig: Command successful (mmWave sensor
-            // responded with 'Done')");
             std::cout << "result->resp : " << result->resp << std::endl;
             parser->ParamsParser(result->resp);
           } else {
-            RCLCPP_ERROR(node->get_logger(),
-                         "mmWaveQuickConfig: Command failed (mmWave sensor did "
-                         "not respond with 'Done')");
+            RCLCPP_ERROR(node->get_logger(), "mmWaveQuickConfig: Command failed "
+                         "(mmWave sensor did not respond with 'Done')");
             RCLCPP_ERROR(node->get_logger(),
                          "mmWaveQuickConfig: Response: '%s'", result->resp);
             return 1;
@@ -157,15 +145,13 @@ int main(int argc, char **argv) {
     exec.spin();
     myParams.close();
   } else {
-    RCLCPP_ERROR(node->get_logger(),
-                 "mmWaveQuickConfig: Failed to open File %s", argv[1]);
+    RCLCPP_ERROR(node->get_logger(), "mmWaveQuickConfig: Failed to open File %s", argv[1]);
     return 1;
   }
 
   RCLCPP_INFO(node->get_logger(),
               "mmWaveQuickConfig: mmWaveQuickConfig will now terminate. Done "
-              "configuring mmWave device using config file: %s",
-              argv[1]);
+              "configuring mmWave device using config file: %s",argv[1]);
 
   rclcpp::shutdown();
 

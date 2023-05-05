@@ -72,8 +72,8 @@ class mmWaveCommSrv : public rclcpp::Node
    
    void onInit();
    
-   void commSrv_cb(std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request>  req, 
-      std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res);
+   bool commSrv_cb(std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request>  req, 
+      std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res);  // *********************************************************
    
    rclcpp::Service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>::SharedPtr commSrv;
    

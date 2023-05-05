@@ -55,11 +55,9 @@ int main(int argc, char **argv) {
   rclcpp::executors::SingleThreadedExecutor exec;
   rclcpp::NodeOptions options;
 
-  auto mm_wave_comm_srv =
-      std::make_shared<ti_mmwave_ros2_pkg::mmWaveCommSrv>(options);
+  auto mm_wave_comm_srv = std::make_shared<ti_mmwave_ros2_pkg::mmWaveCommSrv>(options);
   exec.add_node(mm_wave_comm_srv);
-  auto mm_wave_data_hdl =
-      std::make_shared<ti_mmwave_ros2_pkg::mmWaveDataHdl>(options);
+  auto mm_wave_data_hdl = std::make_shared<ti_mmwave_ros2_pkg::mmWaveDataHdl>(options);
   exec.add_node(mm_wave_data_hdl);
 
   exec.spin();

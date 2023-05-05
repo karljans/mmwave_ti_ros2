@@ -12,7 +12,9 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
 
-    cfg_file = "6843ISK_3d.cfg"
+    # cfg_file = "6843ISK_3d.cfg"
+    # cfg_file = "1843_3d.cfg"
+    cfg_file = "xwr18xx_profile_2023_03_28T13_07_50_520.cfg"
     # cfg_file = "6843ISK_3d_editted.cfg"
 
     pkg_dir_path = get_package_share_directory('ti_mmwave_ros2_pkg')
@@ -20,8 +22,8 @@ def generate_launch_description():
 
     mmwave_quick_config = Node(
         package='ti_mmwave_ros2_pkg',
-        node_executable='mmWaveQuickConfig',
-        node_name='mmwave_quick_config',
+        executable='mmWaveQuickConfig',
+        name='mmwave_quick_config',
         output='screen',
         arguments=[cfg_file_path],
         parameters=[{
@@ -31,27 +33,27 @@ def generate_launch_description():
 
     """Generate launch description with multiple components."""
     container = ComposableNodeContainer(
-            node_name='my_container',
-            node_namespace='',
+            name='my_container',
+            namespace='',
             package='rclcpp_components',
-            node_executable='component_container',
+            executable='component_container',
             composable_node_descriptions=[
                 # ComposableNode(
                 #     package='ti_mmwave_ros2_pkg',
                 #     node_plugin='ti_mmwave_ros2_pkg::mmWaveCommSrv',
                 #     # node_name='mmWaveCommSrv',
                 #     parameters=[{
-                #         "command_port": "/dev/ttyUSB0",
+                #         "command_port": "/dev/ttyACM0",
                 #         "command_rate": 115200,
                 #         "mmWaveCLI_name": "/mmWaveCLI",
                 #     }]
                 # ),
                 ComposableNode(
                     package='ti_mmwave_ros2_pkg',
-                    node_plugin='ti_mmwave_ros2_pkg::mmWaveDataHdl',
-                    node_name='mmWaveDataHdl',
+                    plugin='ti_mmwave_ros2_pkg::mmWaveDataHdl',
+                    name='mmWaveDataHdl',
                     parameters=[{
-                        "data_port": "/dev/ttyUSB1",
+                        "data_port": "/dev/ttyACM1",
                         "data_rate": 921600,
                         "frame_id": "/ti_mmwave_0",
                         "max_allowed_elevation_angle_deg": 90,

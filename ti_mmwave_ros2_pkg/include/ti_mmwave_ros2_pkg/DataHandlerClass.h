@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include "point_types.h"
 // #include "ros/ros.h"
 // #include "pcl_ros/point_cloud.h"
 #include "pcl_conversions/pcl_conversions.h"

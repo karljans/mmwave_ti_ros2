@@ -10,6 +10,7 @@
 ## Quick start guide
 
 1. Mount your mmWave device with power supply and connect a micro-USB cable to host machine with ROS 2. This pkg is vertified in below systems
+<<<<<<< HEAD
 
 * Ubuntu 18.04 & ROS 2 eloquent
 * Ubuntu 20.04 & ROS 2 foxy
@@ -62,6 +63,55 @@ source install/local_setup.bash
 
 If Boost error occurs during building, check your boost version with correct symbolic link (ref by [stackoverflow](https://stackoverflow.com/questions/18200300/undefined-reference-to-boostsystemgeneric-category))
 
+=======
+
+* Ubuntu 20.04 & ROS 2 foxy
+* NVIDIA Jetpack 5.0.2 & ROS 2 foxy
+
+> Here's example of mount (designed by [Lee, Jongmyeong](http://rodel.hanyang.ac.kr/team/players.php?ptype=view&idx=72&page=1&code=play))
+
+<p align="center">
+    <img src="./img/mount_img.png" height="200">
+    <img src="./img/real_mount.jpeg" height="200">
+</p>
+
+1. Download SDK 3.0 or above from [here](http://www.ti.com/tool/MMWAVE-SDK) and use [UNIFLASH](http://www.ti.com/tool/UNIFLASH) to flash xwrXXXX_mmw_demo.bin to your device. **Do not forget SOP2 jumper when flashing.**
+
+<p align="center">
+    <img src="./img/bin_firmware.png" height="200">
+</p>
+
+> I recommend to check with [Demo Visualizer](https://dev.ti.com/gallery/view/mmwave/mmWave_Demo_Visualizer/ver/3.6.0/) before launching ROS 2 demo
+
+3. Install apt Dependencies 
+
+```bash
+# install linux pkgs
+sudo apt-get install libpthread-stubs0-dev
+sudo apt install ros-foxy-perception-pcl -y
+sudo apt install ros-foxy-composition -y
+```
+
+4. Clone this repo and build ROS 2 packages
+  
+```bash
+# cd `<workspace dir>/src`
+git clone https://github.com/canersu/mmwave_ti_ros.git
+
+# pkg build
+colcon build --symlink-install --packages-select serial
+source install/local_setup.bash
+
+colcon build --symlink-install --packages-select ti_mmwave_ros2_interfaces
+source install/local_setup.bash
+
+colcon build --symlink-install --packages-select ti_mmwave_ros2_pkg
+source install/local_setup.bash
+```
+
+If Boost error occurs during building, check your boost version with correct symbolic link (ref by [stackoverflow](https://stackoverflow.com/questions/18200300/undefined-reference-to-boostsystemgeneric-category))
+
+>>>>>>> humble-devel
 ```bash
 # check boost version
 cat /usr/include/boost/version.hpp | grep "BOOST_LIB_VERSION"
@@ -87,7 +137,11 @@ sudo chmod 666 /dev/ttyUSB1
 6. Launch ROS 2 Command
 
 ```bash
+<<<<<<< HEAD
 ros2 launch ti_mmwave_ros2_pkg eloquent_composition.launch.py
+=======
+ros2 launch ti_mmwave_ros2_pkg foxy_composition.launch.py
+>>>>>>> humble-devel
 ```
 
 > Bad news. Main node uses pthread instead of ROS 2 lifecycle. Therefore, you must kill process manually for clearly exit program.
