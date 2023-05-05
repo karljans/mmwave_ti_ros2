@@ -88,10 +88,8 @@ sudo adduser <your_username> dialout
 6. Launch ROS 2 Command
 
 ```bash
-ros2 launch ti_mmwave_ros2_pkg foxy_composition.launch.py
+ros2 launch ti_mmwave_ros2_pkg radar_bringup.launch.py
 ```
-
-> Bad news. Main node uses pthread instead of ROS 2 lifecycle. Therefore, you must kill process manually for clearly exit program.
 
 ```bash
 # To add the namespace for all of the service and topics,
