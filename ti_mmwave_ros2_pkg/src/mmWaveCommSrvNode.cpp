@@ -37,21 +37,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*Include standard C/C++ headers*/
+/* Include standard C/C++ headers */
 #include <cstdio>
 #include <iostream>
 #include <sstream>
 
-/*Include ROS specific headers*/
+/* Include ROS specific headers */
 #include "rclcpp/rclcpp.hpp"
 #include "serial/serial.h"
 #include "std_msgs/msg/string.hpp"
 
-/*mmWave Driver Headers*/
+/* mmWave Driver Headers */
 #include "ti_mmwave_ros2_pkg/visibility_control.hpp"
 #include "ti_mmwave_ros2_interfaces/srv/mm_wave_cli.hpp"
 
-static const std::string DEFAULT_CMP_PORT = "/dev/ttyACM";
+/* Default values */
+static const std::string DEFAULT_CMP_PORT = "/dev/ttyACM0";
 static const int DEFAULT_CMD_RATE = 115200;
 
 class mmWaveCommSrv : public rclcpp::Node

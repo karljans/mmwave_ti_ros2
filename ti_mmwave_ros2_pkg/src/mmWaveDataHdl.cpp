@@ -36,9 +36,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "rclcpp/rclcpp.hpp"
+#include <rclcpp/qos.hpp>
+#include "rclcpp/exceptions.hpp"
+
+#include "rclcpp_components/register_node_macro.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
+
 #include "ti_mmwave_ros2_pkg/DataHandlerClass.hpp"
 #include "ti_mmwave_ros2_pkg/mmWaveDataHdl.hpp"
-#include "rcl_interfaces/msg/set_parameters_result.hpp"
+
+// Default values
+static const std::string DEFAULT_DATA_PORT = "/dev/ttyACM1";
+static const int DEFAULT_DATA_RATE = 921600;
+static const std::string DEFAULT_FRAME_ID = "ti_mmwave";
 
 namespace ti_mmwave_ros2_pkg
 {
@@ -52,60 +64,78 @@ namespace ti_mmwave_ros2_pkg
   void mmWaveDataHdl::onInit()
   {
     std::string serial_port;
-    std::string myFrameID;
+    std::string frame_id;
     std::string ns;
+
     int baudrate;
-    int myMaxAllowedElevationAngleDeg;
-    int myMaxAllowedAzimuthAngleDeg;
+    int max_allowed_elevation_angle_deg;
+    int max_allowed_azimuth_angle_deg;
 
-    ns = this->declare_parameter("namespace", "");
 
-    serial_port = this->declare_parameter("data_port", "/dev/ttyACM1");
-    baudrate = this->declare_parameter("data_rate", 921600);
-    myFrameID = this->declare_parameter("frame_id", "ti_mmwave_0");
-    myMaxAllowedElevationAngleDeg = this->declare_parameter("max_allowed_elevation_angle_deg", 90);
-    myMaxAllowedAzimuthAngleDeg = this->declare_parameter("max_allowed_azimuth_angle_deg", 90);
+    // Parameter declaration
+    serial_port = this->declare_parameter("data_port", DEFAULT_DATA_PORT);
+    baudrate = this->declare_parameter("data_rate", DEFAULT_DATA_RATE);
+    frame_id = this->declare_parameter("frame_id", DEFAULT_FRAME_ID);
+
+    max_allowed_elevation_angle_deg = this->declare_parameter("max_allowed_elevation_angle_deg", 90);
+    max_allowed_azimuth_angle_deg = this->declare_parameter("max_allowed_azimuth_angle_deg", 90);
 
     RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_port = %s",
                 serial_port.c_str());
+
     RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_rate = %d", baudrate);
-    RCLCPP_INFO(this->get_logger(),
-                "mmWaveDataHdl: max_allowed_elevation_angle_deg = %d",
-                myMaxAllowedElevationAngleDeg);
-    RCLCPP_INFO(this->get_logger(),
-                "mmWaveDataHdl: max_allowed_azimuth_angle_deg = %d",
-                myMaxAllowedAzimuthAngleDeg);
+    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: max_allowed_elevation_angle_deg = %d",
+                max_allowed_elevation_angle_deg);
+    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: max_allowed_azimuth_angle_deg = %d",
+                max_allowed_azimuth_angle_deg);
 
-    if (ns.compare("") != 0)
-      ns = "/" + ns;
 
-    auto DataUARTHandler_pub =
-        create_publisher<PointCloud2>(ns + "/ti_mmwave/radar_scan_pcl", 100);
-    auto radar_scan_pub =
-        create_publisher<RadarScan>(ns + "/ti_mmwave/radar_scan", 100);
-    auto marker_pub =
-        create_publisher<Marker>(ns + "/ti_mmwave/radar_scan_markers", 100);
+    // Calculate expanded topic names
+    auto pcl_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan_pcl",
+                                                          this->get_name(), this->get_namespace());
 
-    // This is where the deadlock occurs.
+    auto radar_scan_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan", this->get_name(), 
+                                                                 this->get_namespace());
+
+    auto marker_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan_markers", 
+                                                             this->get_name(), this->get_namespace());
+
+    RCLCPP_INFO(this->get_logger(), "Radar PCL topic: " + pcl_topic);
+    RCLCPP_INFO(this->get_logger(), "Radarscan topic: " + radar_scan_topic);
+    RCLCPP_INFO(this->get_logger(), "Marker topic: " + marker_topic);
+
+    // Create a QoS profile using the sensor message preset
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+
+    auto sensor_qos_profile = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos_profile));
+    sensor_qos_profile.get_rmw_qos_profile() = qos_profile;
+
+    // Setup publishers
+    auto DataUARTHandler_pub = create_publisher<PointCloud2>(pcl_topic, sensor_qos_profile);
+    auto radar_scan_pub = create_publisher<RadarScan>(radar_scan_topic, sensor_qos_profile);
+    auto marker_pub = create_publisher<Marker>(marker_topic, sensor_qos_profile);
+
+    // Initialize the data handler class
     DataHandler = std::make_shared<DataUARTHandler>();
-    // DataHandler->setNamespace(ns);
+
     DataHandler->onInit();
     DataHandler->setPublishers(DataUARTHandler_pub, radar_scan_pub, marker_pub);
 
-    DataHandler->setFrameID((char *)myFrameID.c_str());
+    DataHandler->setFrameID((char *)frame_id.c_str());
     DataHandler->setUARTPort((char *)serial_port.c_str());
     DataHandler->setBaudRate(baudrate);
-    DataHandler->setMaxAllowedElevationAngleDeg(myMaxAllowedElevationAngleDeg);
-    DataHandler->setMaxAllowedAzimuthAngleDeg(myMaxAllowedAzimuthAngleDeg);
+    DataHandler->setMaxAllowedElevationAngleDeg(max_allowed_elevation_angle_deg);
+    DataHandler->setMaxAllowedAzimuthAngleDeg(max_allowed_azimuth_angle_deg);
 
+    // Start the node
     rclcpp::sleep_for(std::chrono::milliseconds(200));
     rclcpp::spin_some(DataHandler);
+    
+    // Start data handler
     DataHandler->start();
     RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: Finished onInit function");
   }
-
 }
-#include "rclcpp_components/register_node_macro.hpp"
 
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable

@@ -59,7 +59,6 @@ def generate_launch_description():
                     name='mmWaveDataHdl',
                     namespace= ns,
                     parameters=[{
-                        "namespace": ns,
                         "data_port": "/dev/ttyACM1",
                         "data_rate": 921600,
                         "frame_id": "ti_mmwave_0",

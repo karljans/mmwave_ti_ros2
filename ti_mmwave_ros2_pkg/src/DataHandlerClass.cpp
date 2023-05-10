@@ -48,6 +48,7 @@
 
 #include "ti_mmwave_ros2_pkg/DataHandlerClass.hpp"
 
+/* Default values */
 static const std::string SRV_NODE_NAME = "mmWaveCommSrvNode";
 
 DataUARTHandler::DataUARTHandler(): rclcpp::Node("DataUARTHandler"), currentBufp(&pingPongBuffers[0]),
@@ -67,8 +68,7 @@ void DataUARTHandler::onInit()
   {
     if (!rclcpp::ok())
     {
-      RCLCPP_ERROR(this->get_logger(),
-                   "client interrupted while waiting for service to appear.");
+      RCLCPP_ERROR(this->get_logger(), "client interrupted while waiting for service to appear.");
       return;
     }
     RCLCPP_INFO(this->get_logger(), "waiting for service to appear...");
@@ -688,6 +688,7 @@ void *DataUARTHandler::sortIncomingData(void)
             (RScan->points[i].x != 0))
         {
           radar_scan_pub->publish(radarscan);
+          this->visualize(radarscan);
         }
         i++;
       }
@@ -985,8 +986,7 @@ void *DataUARTHandler::syncedBufferSwap_helper(void *context)
 }
 
 /* Radar point visualization markers */
-void DataUARTHandler::visualize(
-    const ti_mmwave_ros2_interfaces::msg::RadarScan &msg)
+void DataUARTHandler::visualize(const ti_mmwave_ros2_interfaces::msg::RadarScan &msg)
 {
   auto marker = visualization_msgs::msg::Marker();
 
@@ -1015,5 +1015,5 @@ void DataUARTHandler::visualize(
   marker.color.g = (int)255 * msg.intensity;
   marker.color.b = 1;
 
-  marker_pub->publish(marker);
+  this->marker_pub->publish(marker);
 }
