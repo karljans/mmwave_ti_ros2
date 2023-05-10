@@ -70,14 +70,14 @@ namespace ti_mmwave_ros2_pkg
    private:
       void onInit();
 
-      bool commSrv_cb(std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request> req,
+      void commSrv_cb(std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request> req,
                       std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res); 
 
       rclcpp::Service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>::SharedPtr commSrv;
 
-      std::string mySerialPort;
+      std::string serial_port;
 
-      int myBaudRate;
+      int baudrate;
 
       std::string mmWaveCLIName;
    }; // Class mmWaveCommSrv

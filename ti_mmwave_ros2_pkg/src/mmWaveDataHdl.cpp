@@ -51,24 +51,24 @@ namespace ti_mmwave_ros2_pkg
 
   void mmWaveDataHdl::onInit()
   {
-    std::string mySerialPort;
+    std::string serial_port;
     std::string myFrameID;
     std::string ns;
-    int myBaudRate;
+    int baudrate;
     int myMaxAllowedElevationAngleDeg;
     int myMaxAllowedAzimuthAngleDeg;
 
     ns = this->declare_parameter("namespace", "");
 
-    mySerialPort = this->declare_parameter("data_port", "/dev/ttyACM1");
-    myBaudRate = this->declare_parameter("data_rate", 921600);
+    serial_port = this->declare_parameter("data_port", "/dev/ttyACM1");
+    baudrate = this->declare_parameter("data_rate", 921600);
     myFrameID = this->declare_parameter("frame_id", "ti_mmwave_0");
     myMaxAllowedElevationAngleDeg = this->declare_parameter("max_allowed_elevation_angle_deg", 90);
     myMaxAllowedAzimuthAngleDeg = this->declare_parameter("max_allowed_azimuth_angle_deg", 90);
 
     RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_port = %s",
-                mySerialPort.c_str());
-    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_rate = %d", myBaudRate);
+                serial_port.c_str());
+    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_rate = %d", baudrate);
     RCLCPP_INFO(this->get_logger(),
                 "mmWaveDataHdl: max_allowed_elevation_angle_deg = %d",
                 myMaxAllowedElevationAngleDeg);
@@ -93,8 +93,8 @@ namespace ti_mmwave_ros2_pkg
     DataHandler->setPublishers(DataUARTHandler_pub, radar_scan_pub, marker_pub);
 
     DataHandler->setFrameID((char *)myFrameID.c_str());
-    DataHandler->setUARTPort((char *)mySerialPort.c_str());
-    DataHandler->setBaudRate(myBaudRate);
+    DataHandler->setUARTPort((char *)serial_port.c_str());
+    DataHandler->setBaudRate(baudrate);
     DataHandler->setMaxAllowedElevationAngleDeg(myMaxAllowedElevationAngleDeg);
     DataHandler->setMaxAllowedAzimuthAngleDeg(myMaxAllowedAzimuthAngleDeg);
 

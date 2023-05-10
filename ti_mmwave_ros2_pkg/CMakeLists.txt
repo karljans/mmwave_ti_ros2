@@ -60,7 +60,6 @@ add_definitions(${PCL_DEFINITIONS})
 
 add_library(mmwave SHARED
   src/mmWaveDataHdl.cpp
-  src/mmWaveCommSrv.cpp
   src/DataHandlerClass.cpp
   src/mmWaveQuickConfig.cpp
   src/ParameterParser.cpp
@@ -86,22 +85,8 @@ target_link_libraries(mmwave
 rclcpp_components_register_nodes(mmwave "ti_mmwave_ros2_pkg::mmWaveDataHdl")
 set(node_plugins "${node_plugins}ti_mmwave_ros2_pkg::mmWaveDataHdl;$<TARGET_FILE:mmwave>\n")
 
-rclcpp_components_register_nodes(mmwave "ti_mmwave_ros2_pkg::mmWaveCommSrv")
-set(node_plugins "${node_plugins}ti_mmwave_ros2_pkg::mmWaveCommSrv;$<TARGET_FILE:mmwave>\n")
-
-# mmWaveLoader
-add_executable(${PROJECT_NAME} src/mmWaveLoader.cpp)
-target_link_libraries(${PROJECT_NAME} mmwave)
-ament_target_dependencies(${PROJECT_NAME}
-  rclcpp
-  rclcpp_components
-  sensor_msgs
-  visualization_msgs
-  std_msgs
-  pcl_conversions
-  ti_mmwave_ros2_interfaces
-  serial
-)
+rclcpp_components_register_nodes(mmwave "ti_mmwave_ros2_pkg::mmWaveCommSrvNode")
+set(node_plugins "${node_plugins}ti_mmwave_ros2_pkg::mmWaveCommSrvNode;$<TARGET_FILE:mmwave>\n")
 
 # mmWaveQuickConfig
 add_executable(mmWaveQuickConfig src/mmWaveQuickConfig.cpp)
@@ -146,7 +131,7 @@ install(DIRECTORY
 
 install(
   TARGETS
-    ${PROJECT_NAME}
+    # ${PROJECT_NAME}
     mmWaveQuickConfig
     mmwave_comm_srv_node
   DESTINATION

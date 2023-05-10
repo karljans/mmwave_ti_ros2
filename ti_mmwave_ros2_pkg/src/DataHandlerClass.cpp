@@ -153,15 +153,15 @@ void DataUARTHandler::callbackGlobalParam(
 void DataUARTHandler::setFrameID(char *myFrameID) { frameID = myFrameID; }
 
 /*Implementation of setUARTPort*/
-void DataUARTHandler::setUARTPort(char *mySerialPort)
+void DataUARTHandler::setUARTPort(char *serial_port)
 {
-  dataSerialPort = mySerialPort;
+  dataSerialPort = serial_port;
 }
 
 /*Implementation of setBaudRate*/
-void DataUARTHandler::setBaudRate(int myBaudRate)
+void DataUARTHandler::setBaudRate(int baudrate)
 {
-  dataBaudRate = myBaudRate;
+  dataBaudRate = baudrate;
 }
 
 /*Implementation of setMaxAllowedElevationAngleDeg*/

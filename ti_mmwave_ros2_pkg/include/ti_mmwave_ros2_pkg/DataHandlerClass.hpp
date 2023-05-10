@@ -54,10 +54,10 @@ public:
   void setFrameID(char *myFrameID);
 
   /*User callable function to set the UARTPort*/
-  void setUARTPort(char *mySerialPort);
+  void setUARTPort(char *serial_port);
 
   /*User callable function to set the BaudRate*/
-  void setBaudRate(int myBaudRate);
+  void setBaudRate(int baudrate);
 
   /*User callable function to set maxAllowedElevationAngleDeg*/
   void setMaxAllowedElevationAngleDeg(int myMaxAllowedElevationAngleDeg);
