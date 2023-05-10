@@ -45,7 +45,7 @@
 #include <regex>
 #include <stdio.h>
 
-#include "ti_mmwave_ros2_pkg/ParameterParser.h"
+#include "ti_mmwave_ros2_pkg/ParameterParser.hpp"
 
 // 1. Read and parse the config file.
 // 2. make a line-by-line request to the service server.

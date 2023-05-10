@@ -1,29 +1,33 @@
 #ifndef _DATA_HANDLER_CLASS_
 #define _DATA_HANDLER_CLASS_
 
-#include "ti_mmwave_ros2_interfaces/msg/radar_scan.hpp"
-#include "ti_mmwave_ros2_pkg/visibility_control.h"
-// #include "more_interfaces/msg/address_book.hpp"
-#include "ti_mmwave_ros2_pkg/mmWave.hpp"
-// #include <boost/bind/bind.hpp>
-#include <boost/shared_ptr.hpp>
+#include <iostream>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
-#include "point_types.h"
-// #include "ros/ros.h"
-// #include "pcl_ros/point_cloud.h"
-#include "pcl_conversions/pcl_conversions.h"
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/point_cloud2.hpp"
-#include "sensor_msgs/msg/point_field.hpp"
-#include "sensor_msgs/point_cloud2_iterator.hpp"
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
+#include <pthread.h>
+
+#include <boost/shared_ptr.hpp>
+
+#include "point_types.hpp"
+
+#include "rclcpp/rclcpp.hpp"
+#include "pcl_conversions/pcl_conversions.h"
+
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-#include <pthread.h>
+
 #include <visualization_msgs/msg/marker.hpp>
+
+#include "sensor_msgs/msg/point_field.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "sensor_msgs/point_cloud2_iterator.hpp"
+
+#include "ti_mmwave_ros2_pkg/mmWave.hpp"
+#include "ti_mmwave_ros2_pkg/visibility_control.hpp"
+#include "ti_mmwave_ros2_interfaces/msg/radar_scan.hpp"
+
 #define COUNT_SYNC_MAX 2
 
 using PointCloud2 = sensor_msgs::msg::PointCloud2;
@@ -34,10 +38,6 @@ class DataUARTHandler : public rclcpp::Node
 {
 
 public:
-  /*Constructor*/
-  // void DataUARTHandler(ros::NodeHandle* nh) :
-  // currentBufp(&pingPongBuffers[0]) , nextBufp(&pingPongBuffers[1]) {}
-  // DataUARTHandler(ros::NodeHandle *nh);
   COMPOSITION_PUBLIC
   DataUARTHandler();
 
@@ -158,7 +158,6 @@ private:
   rclcpp::Publisher<RadarScan>::SharedPtr radar_scan_pub;
   rclcpp::Publisher<Marker>::SharedPtr marker_pub;
 
-  std::string ns;
   std::shared_ptr<rclcpp::AsyncParametersClient> parameters_client;
 };
 

@@ -36,9 +36,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "ti_mmwave_ros2_pkg/DataHandlerClass.hpp"
 #include "ti_mmwave_ros2_pkg/mmWaveDataHdl.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
-#include "ti_mmwave_ros2_pkg/DataHandlerClass.h"
 
 namespace ti_mmwave_ros2_pkg
 {
@@ -88,7 +88,7 @@ namespace ti_mmwave_ros2_pkg
 
     // This is where the deadlock occurs.
     DataHandler = std::make_shared<DataUARTHandler>();
-    DataHandler->setNamespace(ns);
+    // DataHandler->setNamespace(ns);
     DataHandler->onInit();
     DataHandler->setPublishers(DataUARTHandler_pub, radar_scan_pub, marker_pub);
 

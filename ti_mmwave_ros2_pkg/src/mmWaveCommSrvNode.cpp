@@ -37,7 +37,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "ti_mmwave_ros2_pkg/visibility_control.h"
+#include "ti_mmwave_ros2_pkg/visibility_control.hpp"
 /*Include ROS specific headers*/
 #include "rclcpp/rclcpp.hpp"
 #include "serial/serial.h"

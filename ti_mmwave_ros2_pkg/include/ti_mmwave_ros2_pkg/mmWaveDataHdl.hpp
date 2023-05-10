@@ -41,24 +41,20 @@
 #ifndef MMWAVE_DATA_HDL_H
 #define MMWAVE_DATA_HDL_H
 
-#include "ti_mmwave_ros2_pkg/visibility_control.h"
-/*Include ROS specific headers*/
-#include "rclcpp/rclcpp.hpp"
-#include "serial/serial.h"
-#include "std_msgs/msg/string.hpp"
-
-// #include <pluginlib/class_list_macros.h>
-// #include <nodelet/nodelet.h>
-
 /*Include standard C/C++ headers*/
 #include <cstdio>
 #include <iostream>
 #include <sstream>
 
-/*mmWave Driver Headers*/
-#include "ti_mmwave_ros2_pkg/DataHandlerClass.h"
-
+/*Include ROS specific headers*/
+#include "rclcpp/rclcpp.hpp"
+#include "serial/serial.h"
+#include "std_msgs/msg/string.hpp"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
+
+/*mmWave Driver Headers*/
+#include "ti_mmwave_ros2_pkg/DataHandlerClass.hpp"
+#include "ti_mmwave_ros2_pkg/visibility_control.hpp"
 
 namespace ti_mmwave_ros2_pkg
 {
@@ -85,10 +81,6 @@ namespace ti_mmwave_ros2_pkg
     float vvel;
 
     void onInit();
-
-    // char* mySerialPort;
-
-    // int myBaudRate;
 
   }; // Class mmWaveDataHdl
 

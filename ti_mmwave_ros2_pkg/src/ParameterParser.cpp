@@ -36,7 +36,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "ti_mmwave_ros2_pkg/ParameterParser.h"
+#include "ti_mmwave_ros2_pkg/ParameterParser.hpp"
 
 namespace ti_mmwave_ros2_pkg
 {

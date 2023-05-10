@@ -38,19 +38,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "ti_mmwave_ros2_pkg/DataHandlerClass.h"
-#include <stdio.h>
+#include <iostream>
+#include <iomanip>  // for std::fixed and std::setprecision
+#include <sstream>  // for std::ostringstream
+#include <string>
 
-DataUARTHandler::DataUARTHandler()
-    : rclcpp::Node("DataUARTHandler"), currentBufp(&pingPongBuffers[0]),
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp/exceptions.hpp"
+
+#include "ti_mmwave_ros2_pkg/DataHandlerClass.hpp"
+
+static const std::string SRV_NODE_NAME = "mmWaveCommSrvNode";
+
+DataUARTHandler::DataUARTHandler(): rclcpp::Node("DataUARTHandler"), currentBufp(&pingPongBuffers[0]),
       nextBufp(&pingPongBuffers[1]) {}
 
 void DataUARTHandler::onInit()
 {
 
-  parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(
-      this, ns + "/mmWaveCommSrvNode");
+  // Radar Service Client
+  auto client_name = rclcpp::expand_topic_or_service_name(SRV_NODE_NAME, this->get_name(), this->get_namespace());
+  RCLCPP_INFO(this->get_logger(), "Using parameter client: " + client_name);
 
+  parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(this, client_name);
+
+  // Wait for parameter service to be up
   while (!parameters_client->wait_for_service(std::chrono::seconds(1)))
   {
     if (!rclcpp::ok())
@@ -62,16 +74,29 @@ void DataUARTHandler::onInit()
     RCLCPP_INFO(this->get_logger(), "waiting for service to appear...");
   }
 
+  // Get parameters
   auto parameters_future = parameters_client->get_parameters(
-      {"numAdcSamples", "numLoops", "num_TX", "f_s", "f_c", "BW", "PRI", "t_fr",
-       "max_range", "range_resolution", "max_doppler_vel",
-       "doppler_vel_resolution"},
+      {
+        "numAdcSamples", 
+        "numLoops", 
+        "num_TX", 
+        "f_s", 
+        "f_c", 
+        "BW", 
+        "PRI", 
+        "t_fr",
+        "max_range", 
+        "range_resolution", 
+        "max_doppler_vel",
+        "doppler_vel_resolution"
+      },
       std::bind(&DataUARTHandler::callbackGlobalParam, this, std::placeholders::_1));
 
   maxAllowedElevationAngleDeg = 90; // Use max angle if none specified
   maxAllowedAzimuthAngleDeg = 90;   // Use max angle if none specified
 }
 
+// Setup topci publishers
 void DataUARTHandler::setPublishers(
     const rclcpp::Publisher<PointCloud2>::SharedPtr DataUARTHandler_pub_in,
     const rclcpp::Publisher<RadarScan>::SharedPtr radar_scan_pub_in,
@@ -82,13 +107,13 @@ void DataUARTHandler::setPublishers(
   this->marker_pub = marker_pub_in;
 }
 
-void DataUARTHandler::setNamespace(const std::string &ns) { this->ns = ns; }
-
+// Read configuraiton
 void DataUARTHandler::callbackGlobalParam(
     std::shared_future<std::vector<rclcpp::Parameter>> future)
 {
 
   auto result = future.get();
+
   nr = result.at(0).as_int();
   nd = result.at(1).as_int();
   ntx = result.at(2).as_int();
@@ -103,15 +128,26 @@ void DataUARTHandler::callbackGlobalParam(
   max_vel = static_cast<float>(result.at(10).as_double());
   vvel = static_cast<float>(result.at(11).as_double());
 
-  printf(
-      "\n\n==============================\nList of "
-      "parameters\n==============================\nNumber of range samples: "
-      "%d\nNumber of chirps: %d\nf_s: %.3f MHz\nf_c: %.3f GHz\nBandwidth: %.3f "
-      "MHz\nPRI: %.3f us\nFrame time: %.3f ms\nMax range: %.3f m\nRange "
-      "resolution: %.3f m\nMax Doppler: +-%.3f m/s\nDoppler resolution: %.3f "
-      "m/s\n==============================\n",
-      nr, nd, fs / 1e6, fc / 1e9, BW / 1e6, PRI * 1e6, tfr * 1e3, max_range,
-      vrange, max_vel / 2, vvel);
+  std::ostringstream oss;
+
+  oss << "\n\n==============================\n"
+        << "List of parameters\n"
+        << "==============================\n"
+        << "Number of range samples: " << nr << "\n"
+        << "Number of chirps: " << nd << "\n"
+        << "f_s: " << std::fixed << std::setprecision(3) << fs / 1e6 << " MHz\n"
+        << "f_c: " << std::fixed << std::setprecision(3) << fc / 1e9 << " GHz\n"
+        << "Bandwidth: " << std::fixed << std::setprecision(3) << BW / 1e6 << " MHz\n"
+        << "PRI: " << std::fixed << std::setprecision(3) << PRI * 1e6 << " us\n"
+        << "Frame time: " << std::fixed << std::setprecision(3) << tfr * 1e3 << " ms\n"
+        << "Max range: " << std::fixed << std::setprecision(3) << max_range << " m\n"
+        << "Range resolution: " << std::fixed << std::setprecision(3) << vrange << " m\n"
+        << "Max Doppler: +-" << std::fixed << std::setprecision(3) << max_vel / 2 << " m/s\n"
+        << "Doppler resolution: " << std::fixed << std::setprecision(3) << vvel << " m/s\n"
+        << "==============================\n";
+
+  std::string output = oss.str();
+  RCLCPP_INFO(this->get_logger(), output);
 }
 
 void DataUARTHandler::setFrameID(char *myFrameID) { frameID = myFrameID; }
@@ -140,55 +176,59 @@ void DataUARTHandler::setMaxAllowedAzimuthAngleDeg(int myMaxAllowedAzimuthAngleD
   maxAllowedAzimuthAngleDeg = myMaxAllowedAzimuthAngleDeg;
 }
 
-/*Implementation of readIncomingData*/
+/* Implementation of readIncomingData */
 void *DataUARTHandler::readIncomingData(void)
 {
   int firstPacketReady = 0;
   uint8_t last8Bytes[8] = {0};
 
-  /*Open UART Port and error checking*/
+  /* Open UART Port and error checking */
   serial::Serial mySerialObject("", dataBaudRate, serial::Timeout::simpleTimeout(100));
   mySerialObject.setPort(dataSerialPort);
+
   try
   {
     mySerialObject.open();
   }
+  
   catch (std::exception &e1)
   {
     printf("DataUARTHandler Read Thread: Failed to open Data serial port "
-           "with error: %s",
-           e1.what());
+           "with error: %s", e1.what());
+
     printf("DataUARTHandler Read Thread: Waiting 20 seconds before trying again...");
+
     try
     {
       // Wait 20 seconds and try to open serial port again
       rclcpp::sleep_for(std::chrono::seconds(20));
       mySerialObject.open();
     }
+
     catch (std::exception &e2)
     {
       //   TODO
-      //   RCLCPP_INFO(this->get_logger(),
-      //               "DataUARTHandler Read Thread: Failed second time to open
-      //               " "Data serial port, error: %s", e1.what());
-      //   RCLCPP_INFO(this->get_logger(),
-      //               "DataUARTHandler Read Thread: Port could not be opened.
-      //               Port " "is \"%s\" and baud rate is %d", dataSerialPort,
-      //               dataBaudRate);
+        RCLCPP_FATAL(this->get_logger(), "DataUARTHandler Read Thread: Failed second time to open" 
+                                        "Data serial port, error: %s", 
+                                        e1.what());
+
+        RCLCPP_FATAL(this->get_logger(), "DataUARTHandler Read Thread: Port could not be opened. "
+                                         "Port is \"%s\" and baud rate is %d", 
+                                         dataSerialPort, dataBaudRate);
 
       pthread_exit(NULL);
     }
   }
 
   if (mySerialObject.isOpen())
-    printf("DataUARTHandler Read Thread: Port is open");
-  else
-    printf("DataUARTHandler Read Thread: Port could not be opened");
+    RCLCPP_INFO(this->get_logger(), "DataUARTHandler Read Thread: Serial port is open");
 
-  /*Quick magicWord check to synchronize program with data Stream*/
+  else
+    RCLCPP_ERROR(this->get_logger(), "DataUARTHandler Read Thread: Serial port cannot be opened!");
+
+  /* Quick magicWord check to synchronize program with data Stream */
   while (!isMagicWord(last8Bytes))
   {
-
     last8Bytes[0] = last8Bytes[1];
     last8Bytes[1] = last8Bytes[2];
     last8Bytes[2] = last8Bytes[3];
@@ -199,7 +239,7 @@ void *DataUARTHandler::readIncomingData(void)
     mySerialObject.read(&last8Bytes[7], 1);
   }
 
-  /*Lock nextBufp before entering main loop*/
+  /* Lock nextBufp before entering main loop */
   pthread_mutex_lock(&nextBufp_mutex);
 
   while (rclcpp::ok())
@@ -216,6 +256,7 @@ void *DataUARTHandler::readIncomingData(void)
     mySerialObject.read(&last8Bytes[7], 1);
 
     nextBufp->push_back(last8Bytes[7]); // push byte onto buffer
+
     /*If a magicWord is found wait for sorting to finish and switch buffers*/
     if (isMagicWord(last8Bytes))
     {
@@ -259,6 +300,7 @@ void *DataUARTHandler::readIncomingData(void)
   pthread_exit(NULL);
 }
 
+/* Check if magic word is valid */
 int DataUARTHandler::isMagicWord(uint8_t last8Bytes[8])
 {
   int val = 0, i = 0, j = 0;
@@ -277,11 +319,11 @@ int DataUARTHandler::isMagicWord(uint8_t last8Bytes[8])
   return val;
 }
 
+/* Thread-safe communication */
 void *DataUARTHandler::syncedBufferSwap(void)
 {
   while (rclcpp::ok())
   {
-
     pthread_mutex_lock(&countSync_mutex);
 
     while (countSync < COUNT_SYNC_MAX)
@@ -312,20 +354,25 @@ void *DataUARTHandler::syncedBufferSwap(void)
   pthread_exit(NULL);
 }
 
+/* Processes incoming data */
 void *DataUARTHandler::sortIncomingData(void)
 {
-  MmwDemo_Output_TLV_Types tlvType = MMWDEMO_OUTPUT_MSG_NULL;
+  int j = 0;
+  uint i = 0;
+  uint tlvCount = 0;
+  uint currentDatap = 0;
+
   uint32_t tlvLen = 0;
   uint32_t headerSize;
-  unsigned int currentDatap = 0;
-  SorterState sorterState = READ_HEADER;
-  uint i = 0, tlvCount = 0;
-  int j = 0;
+    
   float maxElevationAngleRatioSquared;
   float maxAzimuthAngleRatio;
+  
+  SorterState sorterState = READ_HEADER;
+  MmwDemo_Output_TLV_Types tlvType = MMWDEMO_OUTPUT_MSG_NULL;
 
-  boost::shared_ptr<pcl::PointCloud<radar_pcl::PointXYZIVR>> RScan(
-      new pcl::PointCloud<radar_pcl::PointXYZIVR>);
+  boost::shared_ptr<pcl::PointCloud<radar_pcl::PointXYZIVRB>> RScan(new pcl::PointCloud<radar_pcl::PointXYZIVRB>);
+
   sensor_msgs::msg::PointCloud2 output_pointcloud;
   ti_mmwave_ros2_interfaces::msg::RadarScan radarscan;
 
@@ -336,9 +383,9 @@ void *DataUARTHandler::sortIncomingData(void)
 
   pthread_mutex_lock(&currentBufp_mutex);
 
+  /* Main loop */
   while (rclcpp::ok())
   {
-
     switch (sorterState)
     {
 
@@ -447,6 +494,7 @@ void *DataUARTHandler::sortIncomingData(void)
         mmwData.numObjOut = mmwData.header.numDetectedObj;
       }
 
+      // PCL pointcloud
       RScan->header.frame_id = frameID;
       RScan->height = 1;
       RScan->width = mmwData.numObjOut;
@@ -459,13 +507,16 @@ void *DataUARTHandler::sortIncomingData(void)
       {
         maxElevationAngleRatioSquared =
             tan(maxAllowedElevationAngleDeg * M_PI / 180.0);
+
         maxElevationAngleRatioSquared =
             maxElevationAngleRatioSquared * maxElevationAngleRatioSquared;
       }
       else
         maxElevationAngleRatioSquared = -1;
+
       if ((maxAllowedAzimuthAngleDeg >= 0) && (maxAllowedAzimuthAngleDeg < 90))
         maxAzimuthAngleRatio = tan(maxAllowedAzimuthAngleDeg * M_PI / 180.0);
+
       else
         maxAzimuthAngleRatio = -1;
 
@@ -503,6 +554,7 @@ void *DataUARTHandler::sortIncomingData(void)
           // get object z-coordinate
           memcpy(&mmwData.objOut.z, &currentBufp->at(currentDatap),
                  sizeof(mmwData.objOut.z));
+
           currentDatap += (sizeof(mmwData.objOut.z));
 
           float temp[8];
@@ -532,7 +584,7 @@ void *DataUARTHandler::sortIncomingData(void)
 
           uint16_t tmp = (uint16_t)(temp[3] + nd / 2);
 
-          // Map mmWave sensor coordinates to ROS coordinate system
+          // Map mmWave sensor coordinates to ROS coordinate system PCL Pointcloud
           // ROS standard coordinate system X-axis is forward which is the mmWave sensor Y-axis
           RScan->points[i].x = temp[1];
           // ROS standard coordinate system Y-axis is left which is the mmWave sensor -(X-axis)
@@ -543,7 +595,9 @@ void *DataUARTHandler::sortIncomingData(void)
           RScan->points[i].intensity = temp[5];
           RScan->points[i].velocity = temp[7];
           RScan->points[i].range = temp[4];
-
+          RScan->points[i].bearing = temp[6];
+          
+          // Custom radarscan message
           radarscan.header.frame_id = frameID;
           radarscan.header.stamp = rclcpp::Clock().now();
 
@@ -557,6 +611,7 @@ void *DataUARTHandler::sortIncomingData(void)
           radarscan.bearing = temp[6];
           radarscan.intensity = temp[5];
         }
+
         else
         { // SDK version is 3.x+
           // get object x-coordinate (meters)
@@ -579,17 +634,32 @@ void *DataUARTHandler::sortIncomingData(void)
                  sizeof(mmwData.objOut_cartes.velocity));
           currentDatap += (sizeof(mmwData.objOut_cartes.velocity));
 
+          // Calculate range (distance) using the pythagorean theorem
+          float point_range = sqrt(radarscan.x * radarscan.x + radarscan.y * radarscan.y + radarscan.z * radarscan.z);
+
+          // Calculate bearing
+          float point_bearing = std::atan2(-mmwData.objOut_cartes.x, mmwData.objOut_cartes.y) / M_PI * 180;
+
           // Map mmWave sensor coordinates to ROS coordinate system
           // ROS standard coordinate system X-axis is forward which is the mmWave sensor Y-axis
           RScan->points[i].x = mmwData.objOut_cartes.y;
+
           // ROS standard coordinate system Y-axis is left which is the mmWave sensor -(X-axis)
           RScan->points[i].y = -mmwData.objOut_cartes.x;
+
           // ROS standard coordinate system Z-axis is up which is the same as mmWave sensor Z-axis
           RScan->points[i].z = mmwData.objOut_cartes.z;
-          RScan->points[i].velocity = mmwData.objOut_cartes.velocity;
-          RScan->points[i].range = sqrt(radarscan.x * radarscan.x +
-                                        radarscan.y * radarscan.y + radarscan.z * radarscan.z);
 
+          // Velocity in m/s
+          RScan->points[i].velocity = mmwData.objOut_cartes.velocity;
+
+          // Range in m
+          RScan->points[i].range = point_range;
+          
+          // Bearing on degrees
+          RScan->points[i].bearing = point_bearing;
+
+          // Set frame ID
           radarscan.header.frame_id = frameID;
           radarscan.header.stamp = rclcpp::Clock().now();
 
@@ -598,14 +668,11 @@ void *DataUARTHandler::sortIncomingData(void)
           radarscan.y = -mmwData.objOut_cartes.x;
           radarscan.z = mmwData.objOut_cartes.z;
           radarscan.velocity = mmwData.objOut_cartes.velocity;
-          radarscan.range = sqrt(radarscan.x * radarscan.x +
-                                 radarscan.y * radarscan.y + radarscan.z * radarscan.z);
+          radarscan.range = point_range;
 
           radarscan.doppler_bin = (uint16_t)(mmwData.detList.dopplerIdx + nd / 2);
 
-          radarscan.bearing = std::atan2(-mmwData.objOut_cartes.x,
-                                         mmwData.objOut_cartes.y) /
-                              M_PI * 180;
+          radarscan.bearing = point_bearing;
 
           radarscan.intensity = (float)mmwData.sideInfo.snr / 10.0;
 
@@ -651,6 +718,7 @@ void *DataUARTHandler::sortIncomingData(void)
           RScan->points[i].intensity = (float)mmwData.sideInfo.snr / 10.0;
         }
       }
+
       else // else just skip side info section if we have not already received
            // and parsed detected obj list
       {
@@ -672,9 +740,9 @@ void *DataUARTHandler::sortIncomingData(void)
 
       i = 0;
 
-      while (i++ < tlvLen - 1)
-      {
-      }
+      // Do nothing until the condition is met
+      while (i++ < tlvLen - 1){}
+
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -683,9 +751,9 @@ void *DataUARTHandler::sortIncomingData(void)
 
       i = 0;
 
-      while (i++ < tlvLen - 1)
-      {
-      }
+      // Do nothing until the condition is met
+      while (i++ < tlvLen - 1){}
+
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -694,9 +762,9 @@ void *DataUARTHandler::sortIncomingData(void)
 
       i = 0;
 
-      while (i++ < tlvLen - 1)
-      {
-      }
+      // Do nothing until the condition is met
+      while (i++ < tlvLen - 1){}
+
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -705,9 +773,9 @@ void *DataUARTHandler::sortIncomingData(void)
 
       i = 0;
 
-      while (i++ < tlvLen - 1)
-      {
-      }
+      // Do nothing until the condition is met
+      while (i++ < tlvLen - 1){}
+
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -855,39 +923,40 @@ void DataUARTHandler::start(void)
   countSync = 0;
 
   /* Create independent threads each of which will execute function */
-  iret1 =
-      pthread_create(&uartThread, NULL, this->readIncomingData_helper, this);
+  iret1 = pthread_create(&uartThread, NULL, this->readIncomingData_helper, this);
   if (iret1)
   {
-    printf("Error - pthread_create() return code: %d\n", iret1);
+    RCLCPP_FATAL(this->get_logger(), "Error - pthread_create() return code:" + iret1);
     rclcpp::shutdown();
   }
 
-  iret2 =
-      pthread_create(&sorterThread, NULL, this->sortIncomingData_helper, this);
+  iret2 = pthread_create(&sorterThread, NULL, this->sortIncomingData_helper, this);
   if (iret2)
   {
-    printf("Error - pthread_create() return code: %d\n", iret2);
+    RCLCPP_FATAL(this->get_logger(), "Error - pthread_create() return code:" + iret2);
     rclcpp::shutdown();
   }
 
-  iret3 =
-      pthread_create(&swapThread, NULL, this->syncedBufferSwap_helper, this);
+  iret3 = pthread_create(&swapThread, NULL, this->syncedBufferSwap_helper, this);
   if (iret3)
   {
-    printf("Error - pthread_create() return code: %d\n", iret3);
+    RCLCPP_FATAL(this->get_logger(), "Error - pthread_create() return code:" + iret3);
     rclcpp::shutdown();
   }
 
-  while (1)
+  // Wait until we should shut down
+  while (rclcpp::ok())
     continue;
 
+  // Wait for threads to finish
   pthread_join(iret1, NULL);
-  printf("DataUARTHandler Read Thread joined\n");
+  RCLCPP_INFO(this->get_logger(), "DataUARTHandler Read Thread joined");
+
   pthread_join(iret2, NULL);
-  printf("DataUARTHandler Sort Thread joined\n");
+  RCLCPP_INFO(this->get_logger(), "DataUARTHandler Sort Thread joined");
+
   pthread_join(iret3, NULL);
-  printf("DataUARTHandler Swap Thread joined\n");
+  RCLCPP_INFO(this->get_logger(), "DataUARTHandler Swap Thread joined");
 
   pthread_mutex_destroy(&countSync_mutex);
   pthread_mutex_destroy(&nextBufp_mutex);
@@ -895,7 +964,10 @@ void DataUARTHandler::start(void)
   pthread_cond_destroy(&countSync_max_cv);
   pthread_cond_destroy(&read_go_cv);
   pthread_cond_destroy(&sort_go_cv);
+
+  rclcpp::shutdown();
 }
+
 
 void *DataUARTHandler::readIncomingData_helper(void *context)
 {
@@ -912,6 +984,7 @@ void *DataUARTHandler::syncedBufferSwap_helper(void *context)
   return (static_cast<DataUARTHandler *>(context)->syncedBufferSwap());
 }
 
+/* Radar point visualization markers */
 void DataUARTHandler::visualize(
     const ti_mmwave_ros2_interfaces::msg::RadarScan &msg)
 {

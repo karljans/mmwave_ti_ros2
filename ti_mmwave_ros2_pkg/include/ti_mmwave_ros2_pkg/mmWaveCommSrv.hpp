@@ -41,21 +41,21 @@
 #ifndef MMWAVE_COMM_SRV_H
 #define MMWAVE_COMM_SRV_H
 
-#include "ti_mmwave_ros2_pkg/visibility_control.h"
-/*Include ROS specific headers*/
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
-#include "serial/serial.h"
-// #include <pluginlib/class_list_macros.h>
-// #include <nodelet/nodelet.h>
-
 /*Include standard C/C++ headers*/
 #include <iostream>
 #include <cstdio>
 #include <sstream>
 
+/*Include ROS specific headers*/
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
+
+/* Serial access */
+#include "serial/serial.h"
+
 /*mmWave Driver Headers*/
 #include "ti_mmwave_ros2_interfaces/srv/mm_wave_cli.hpp"
+#include "ti_mmwave_ros2_pkg/visibility_control.hpp"
 
 namespace ti_mmwave_ros2_pkg
 {
