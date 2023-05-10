@@ -37,9 +37,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 // reference
-
 
 #include <memory>
 
@@ -47,7 +45,8 @@
 #include "ti_mmwave_ros2_pkg/mmWaveCommSrv.hpp"
 #include "ti_mmwave_ros2_pkg/mmWaveDataHdl.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
   rclcpp::init(argc, argv);

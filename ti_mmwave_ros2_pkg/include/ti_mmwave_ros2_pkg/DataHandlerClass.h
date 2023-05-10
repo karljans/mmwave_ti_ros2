@@ -30,7 +30,8 @@ using PointCloud2 = sensor_msgs::msg::PointCloud2;
 using RadarScan = ti_mmwave_ros2_interfaces::msg::RadarScan;
 using Marker = visualization_msgs::msg::Marker;
 
-class DataUARTHandler : public rclcpp::Node {
+class DataUARTHandler : public rclcpp::Node
+{
 
 public:
   /*Constructor*/
@@ -156,7 +157,7 @@ private:
   rclcpp::Publisher<PointCloud2>::SharedPtr DataUARTHandler_pub;
   rclcpp::Publisher<RadarScan>::SharedPtr radar_scan_pub;
   rclcpp::Publisher<Marker>::SharedPtr marker_pub;
-  
+
   std::string ns;
   std::shared_ptr<rclcpp::AsyncParametersClient> parameters_client;
 };

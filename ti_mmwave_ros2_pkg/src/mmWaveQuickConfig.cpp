@@ -52,7 +52,8 @@
 // 3. server does serial read & write, which are actually the same value.
 // 4. Receive the written value as request.
 // 5. The parameter parser receives the request and sets the parameters.
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
   rclcpp::init(argc, argv);
@@ -60,28 +61,33 @@ int main(int argc, char **argv) {
   rclcpp::executors::SingleThreadedExecutor exec;
   rclcpp::NodeOptions options;
 
-  if (argc < 3) {
+  if (argc < 3)
+  {
     std::cout << "mmWaveQuickConfig: usage: mmWaveQuickConfig "
-                 "/file_directory/params.cfg" << std::endl;
+                 "/file_directory/params.cfg"
+              << std::endl;
     return 1;
-  } else
+  }
+  else
     std::cout << "mmWaveQuickConfig: Configuring mmWave device using config file: "
-        << argv[1] << std::endl;
+              << argv[1] << std::endl;
 
   auto node = rclcpp::Node::make_shared("mmWaveQuickConfig");
 
   std::string mmWaveCLIName, ns;
   mmWaveCLIName = node->declare_parameter("mmWaveCLI_name", "mmWaveCLI");
   ns = node->declare_parameter("namespace", "");
-  
+
   std::cout << "mmWaveCLIName : " << mmWaveCLIName << std::endl;
-  
+
   // service client
   auto client = node->create_client<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>(
       mmWaveCLIName);
 
-  while (!client->wait_for_service(std::chrono::seconds(1))) {
-    if (!rclcpp::ok()) {
+  while (!client->wait_for_service(std::chrono::seconds(1)))
+  {
+    if (!rclcpp::ok())
+    {
       RCLCPP_ERROR(node->get_logger(),
                    "client interrupted while waiting for service to appear.");
       return 1;
@@ -97,43 +103,53 @@ int main(int argc, char **argv) {
   parser->init(ns);
   exec.add_node(parser);
 
-  //wait for service to become available
+  // wait for service to become available
   rclcpp::sleep_for(std::chrono::milliseconds(500));
 
   myParams.open(argv[1]);
 
-  if (myParams.is_open()) {
-    while (std::getline(myParams, request->comm)) {
+  if (myParams.is_open())
+  {
+    while (std::getline(myParams, request->comm))
+    {
       // Remove Windows carriage-return if present
       request->comm.erase(
           std::remove(request->comm.begin(), request->comm.end(), '\r'),
           request->comm.end());
       // Ignore comment lines (first non-space char is '%') or blank lines
       if (!(std::regex_match(request->comm, std::regex("^\\s*%.*")) ||
-            std::regex_match(request->comm, std::regex("^\\s*")))) {
+            std::regex_match(request->comm, std::regex("^\\s*"))))
+      {
 
         std::cout << "request->comm : " << request->comm << std::endl;
         auto result_future = client->async_send_request(request);
 
         if (rclcpp::spin_until_future_complete(node, result_future) !=
-            rclcpp::executor::FutureReturnCode::SUCCESS) {
+            rclcpp::executor::FutureReturnCode::SUCCESS)
+        {
           RCLCPP_ERROR(node->get_logger(), "service call failed :(");
           return 1;
         }
         auto result = result_future.get();
 
-        if (result != nullptr) {
-          if (std::regex_search(result->resp, std::regex("Done"))) {
+        if (result != nullptr)
+        {
+          if (std::regex_search(result->resp, std::regex("Done")))
+          {
             std::cout << "result->resp : " << result->resp << std::endl;
             parser->ParamsParser(result->resp);
-          } else {
+          }
+          else
+          {
             RCLCPP_ERROR(node->get_logger(), "mmWaveQuickConfig: Command failed "
-                         "(mmWave sensor did not respond with 'Done')");
+                                             "(mmWave sensor did not respond with 'Done')");
             RCLCPP_ERROR(node->get_logger(),
                          "mmWaveQuickConfig: Response: '%s'", result->resp);
             return 1;
           }
-        } else {
+        }
+        else
+        {
           RCLCPP_ERROR(node->get_logger(),
                        "mmWaveQuickConfig: Failed to call service mmWaveCLI");
           RCLCPP_ERROR(node->get_logger(), "%s", request->comm.c_str());
@@ -144,14 +160,17 @@ int main(int argc, char **argv) {
     parser->CalParams();
     exec.spin();
     myParams.close();
-  } else {
+  }
+  else
+  {
     RCLCPP_ERROR(node->get_logger(), "mmWaveQuickConfig: Failed to open File %s", argv[1]);
     return 1;
   }
 
   RCLCPP_INFO(node->get_logger(),
               "mmWaveQuickConfig: mmWaveQuickConfig will now terminate. Done "
-              "configuring mmWave device using config file: %s",argv[1]);
+              "configuring mmWave device using config file: %s",
+              argv[1]);
 
   rclcpp::shutdown();
 

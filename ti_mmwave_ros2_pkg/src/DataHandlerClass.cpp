@@ -45,13 +45,16 @@ DataUARTHandler::DataUARTHandler()
     : rclcpp::Node("DataUARTHandler"), currentBufp(&pingPongBuffers[0]),
       nextBufp(&pingPongBuffers[1]) {}
 
-void DataUARTHandler::onInit() {
+void DataUARTHandler::onInit()
+{
 
   parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(
       this, ns + "/mmWaveCommSrvNode");
 
-  while (!parameters_client->wait_for_service(std::chrono::seconds(1))) {
-    if (!rclcpp::ok()) {
+  while (!parameters_client->wait_for_service(std::chrono::seconds(1)))
+  {
+    if (!rclcpp::ok())
+    {
       RCLCPP_ERROR(this->get_logger(),
                    "client interrupted while waiting for service to appear.");
       return;
@@ -72,7 +75,8 @@ void DataUARTHandler::onInit() {
 void DataUARTHandler::setPublishers(
     const rclcpp::Publisher<PointCloud2>::SharedPtr DataUARTHandler_pub_in,
     const rclcpp::Publisher<RadarScan>::SharedPtr radar_scan_pub_in,
-    const rclcpp::Publisher<Marker>::SharedPtr marker_pub_in) {
+    const rclcpp::Publisher<Marker>::SharedPtr marker_pub_in)
+{
   this->DataUARTHandler_pub = DataUARTHandler_pub_in;
   this->radar_scan_pub = radar_scan_pub_in;
   this->marker_pub = marker_pub_in;
@@ -81,7 +85,8 @@ void DataUARTHandler::setPublishers(
 void DataUARTHandler::setNamespace(const std::string &ns) { this->ns = ns; }
 
 void DataUARTHandler::callbackGlobalParam(
-    std::shared_future<std::vector<rclcpp::Parameter>> future) {
+    std::shared_future<std::vector<rclcpp::Parameter>> future)
+{
 
   auto result = future.get();
   nr = result.at(0).as_int();
@@ -112,40 +117,56 @@ void DataUARTHandler::callbackGlobalParam(
 void DataUARTHandler::setFrameID(char *myFrameID) { frameID = myFrameID; }
 
 /*Implementation of setUARTPort*/
-void DataUARTHandler::setUARTPort(char *mySerialPort) 
-{ dataSerialPort = mySerialPort; }
+void DataUARTHandler::setUARTPort(char *mySerialPort)
+{
+  dataSerialPort = mySerialPort;
+}
 
 /*Implementation of setBaudRate*/
-void DataUARTHandler::setBaudRate(int myBaudRate) 
-{ dataBaudRate = myBaudRate; }
+void DataUARTHandler::setBaudRate(int myBaudRate)
+{
+  dataBaudRate = myBaudRate;
+}
 
 /*Implementation of setMaxAllowedElevationAngleDeg*/
-void DataUARTHandler::setMaxAllowedElevationAngleDeg(int myMaxAllowedElevationAngleDeg) 
-{ maxAllowedElevationAngleDeg = myMaxAllowedElevationAngleDeg; }
+void DataUARTHandler::setMaxAllowedElevationAngleDeg(int myMaxAllowedElevationAngleDeg)
+{
+  maxAllowedElevationAngleDeg = myMaxAllowedElevationAngleDeg;
+}
 
 /*Implementation of setMaxAllowedAzimuthAngleDeg*/
-void DataUARTHandler::setMaxAllowedAzimuthAngleDeg( int myMaxAllowedAzimuthAngleDeg)
-{ maxAllowedAzimuthAngleDeg = myMaxAllowedAzimuthAngleDeg; }
+void DataUARTHandler::setMaxAllowedAzimuthAngleDeg(int myMaxAllowedAzimuthAngleDeg)
+{
+  maxAllowedAzimuthAngleDeg = myMaxAllowedAzimuthAngleDeg;
+}
 
 /*Implementation of readIncomingData*/
-void *DataUARTHandler::readIncomingData(void) {
+void *DataUARTHandler::readIncomingData(void)
+{
   int firstPacketReady = 0;
   uint8_t last8Bytes[8] = {0};
 
   /*Open UART Port and error checking*/
   serial::Serial mySerialObject("", dataBaudRate, serial::Timeout::simpleTimeout(100));
   mySerialObject.setPort(dataSerialPort);
-  try {
+  try
+  {
     mySerialObject.open();
-  } catch (std::exception &e1) {
+  }
+  catch (std::exception &e1)
+  {
     printf("DataUARTHandler Read Thread: Failed to open Data serial port "
-           "with error: %s", e1.what());
+           "with error: %s",
+           e1.what());
     printf("DataUARTHandler Read Thread: Waiting 20 seconds before trying again...");
-    try {
+    try
+    {
       // Wait 20 seconds and try to open serial port again
       rclcpp::sleep_for(std::chrono::seconds(20));
       mySerialObject.open();
-    } catch (std::exception &e2) {
+    }
+    catch (std::exception &e2)
+    {
       //   TODO
       //   RCLCPP_INFO(this->get_logger(),
       //               "DataUARTHandler Read Thread: Failed second time to open
@@ -165,7 +186,8 @@ void *DataUARTHandler::readIncomingData(void) {
     printf("DataUARTHandler Read Thread: Port could not be opened");
 
   /*Quick magicWord check to synchronize program with data Stream*/
-  while (!isMagicWord(last8Bytes)) {
+  while (!isMagicWord(last8Bytes))
+  {
 
     last8Bytes[0] = last8Bytes[1];
     last8Bytes[1] = last8Bytes[2];
@@ -180,7 +202,8 @@ void *DataUARTHandler::readIncomingData(void) {
   /*Lock nextBufp before entering main loop*/
   pthread_mutex_lock(&nextBufp_mutex);
 
-  while (rclcpp::ok()) {
+  while (rclcpp::ok())
+  {
     /*Start reading UART data and writing to buffer while also checking for
      * magicWord*/
     last8Bytes[0] = last8Bytes[1];
@@ -194,7 +217,8 @@ void *DataUARTHandler::readIncomingData(void) {
 
     nextBufp->push_back(last8Bytes[7]); // push byte onto buffer
     /*If a magicWord is found wait for sorting to finish and switch buffers*/
-    if (isMagicWord(last8Bytes)) {
+    if (isMagicWord(last8Bytes))
+    {
 
       /*Lock countSync Mutex while unlocking nextBufp so that the swap thread
        * can use it*/
@@ -206,13 +230,15 @@ void *DataUARTHandler::readIncomingData(void) {
 
       /*If this is the first packet to be found, increment countSync again since
        * Sort thread is not reading data yet*/
-      if (firstPacketReady == 0) {
+      if (firstPacketReady == 0)
+      {
         countSync++;
         firstPacketReady = 1;
       }
 
       /*Signal Swap Thread to run if countSync has reached its max value*/
-      if (countSync == COUNT_SYNC_MAX) {
+      if (countSync == COUNT_SYNC_MAX)
+      {
         pthread_cond_signal(&countSync_max_cv);
       }
 
@@ -233,22 +259,33 @@ void *DataUARTHandler::readIncomingData(void) {
   pthread_exit(NULL);
 }
 
-int DataUARTHandler::isMagicWord(uint8_t last8Bytes[8]) {
+int DataUARTHandler::isMagicWord(uint8_t last8Bytes[8])
+{
   int val = 0, i = 0, j = 0;
-  for (i = 0; i < 8; i++) {
-    if (last8Bytes[i] == magicWord[i]) { j++; }
+  for (i = 0; i < 8; i++)
+  {
+    if (last8Bytes[i] == magicWord[i])
+    {
+      j++;
+    }
   }
-  if (j == 8) { val = 1; }
+  if (j == 8)
+  {
+    val = 1;
+  }
 
   return val;
 }
 
-void *DataUARTHandler::syncedBufferSwap(void) {
-  while (rclcpp::ok()) {
+void *DataUARTHandler::syncedBufferSwap(void)
+{
+  while (rclcpp::ok())
+  {
 
     pthread_mutex_lock(&countSync_mutex);
 
-    while (countSync < COUNT_SYNC_MAX) {
+    while (countSync < COUNT_SYNC_MAX)
+    {
       pthread_cond_wait(&countSync_max_cv, &countSync_mutex);
 
       pthread_mutex_lock(&currentBufp_mutex);
@@ -275,7 +312,8 @@ void *DataUARTHandler::syncedBufferSwap(void) {
   pthread_exit(NULL);
 }
 
-void *DataUARTHandler::sortIncomingData(void) {
+void *DataUARTHandler::sortIncomingData(void)
+{
   MmwDemo_Output_TLV_Types tlvType = MMWDEMO_OUTPUT_MSG_NULL;
   uint32_t tlvLen = 0;
   uint32_t headerSize;
@@ -287,7 +325,7 @@ void *DataUARTHandler::sortIncomingData(void) {
   float maxAzimuthAngleRatio;
 
   boost::shared_ptr<pcl::PointCloud<radar_pcl::PointXYZIVR>> RScan(
-                              new pcl::PointCloud<radar_pcl::PointXYZIVR>);
+      new pcl::PointCloud<radar_pcl::PointXYZIVR>);
   sensor_msgs::msg::PointCloud2 output_pointcloud;
   ti_mmwave_ros2_interfaces::msg::RadarScan radarscan;
 
@@ -298,9 +336,11 @@ void *DataUARTHandler::sortIncomingData(void) {
 
   pthread_mutex_lock(&currentBufp_mutex);
 
-  while (rclcpp::ok()) {
+  while (rclcpp::ok())
+  {
 
-    switch (sorterState) {
+    switch (sorterState)
+    {
 
     case READ_HEADER:
 
@@ -309,7 +349,8 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       // make sure packet has at least first three fields (12 bytes) before we
       // read them (does not include magicWord since it was already removed)
-      if (currentBufp->size() < 12) {
+      if (currentBufp->size() < 12)
+      {
         sorterState = SWAP_BUFFERS;
         break;
       }
@@ -335,10 +376,13 @@ void *DataUARTHandler::sortIncomingData(void) {
       if ((mmwData.header.platform & 0xFFFF) == 0x1443) // platform is xWR1443)
       {
         headerSize = 7 * 4; // xWR1443 SDK demo header does not have subFrameNumber field
-      } else {
+      }
+      else
+      {
         headerSize = 8 * 4; // header includes subFrameNumber field
       }
-      if (currentBufp->size() < headerSize) {
+      if (currentBufp->size() < headerSize)
+      {
         sorterState = SWAP_BUFFERS;
         break;
       }
@@ -364,16 +408,19 @@ void *DataUARTHandler::sortIncomingData(void) {
       currentDatap += (sizeof(mmwData.header.numTLVs));
 
       // get subFrameNumber (4 bytes) (not used for XWR1443)
-      if ((mmwData.header.platform & 0xFFFF) != 0x1443) {
+      if ((mmwData.header.platform & 0xFFFF) != 0x1443)
+      {
         memcpy(&mmwData.header.subFrameNumber, &currentBufp->at(currentDatap),
                sizeof(mmwData.header.subFrameNumber));
         currentDatap += (sizeof(mmwData.header.subFrameNumber));
       }
 
       // if packet lengths do not match, throw it away
-      if (mmwData.header.totalPacketLen == currentBufp->size()) {
+      if (mmwData.header.totalPacketLen == currentBufp->size())
+      {
         sorterState = CHECK_TLV_TYPE;
-      } else
+      }
+      else
         sorterState = SWAP_BUFFERS;
       break;
 
@@ -394,7 +441,8 @@ void *DataUARTHandler::sortIncomingData(void) {
         memcpy(&mmwData.xyzQFormat, &currentBufp->at(currentDatap),
                sizeof(mmwData.xyzQFormat));
         currentDatap += (sizeof(mmwData.xyzQFormat));
-      } else // SDK version is at least 3.x
+      }
+      else // SDK version is at least 3.x
       {
         mmwData.numObjOut = mmwData.header.numDetectedObj;
       }
@@ -407,12 +455,14 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       // Calculate ratios for max desired elevation and azimuth angles
       if ((maxAllowedElevationAngleDeg >= 0) &&
-          (maxAllowedElevationAngleDeg < 90)) {
+          (maxAllowedElevationAngleDeg < 90))
+      {
         maxElevationAngleRatioSquared =
             tan(maxAllowedElevationAngleDeg * M_PI / 180.0);
         maxElevationAngleRatioSquared =
             maxElevationAngleRatioSquared * maxElevationAngleRatioSquared;
-      } else
+      }
+      else
         maxElevationAngleRatioSquared = -1;
       if ((maxAllowedAzimuthAngleDeg >= 0) && (maxAllowedAzimuthAngleDeg < 90))
         maxAzimuthAngleRatio = tan(maxAllowedAzimuthAngleDeg * M_PI / 180.0);
@@ -420,9 +470,11 @@ void *DataUARTHandler::sortIncomingData(void) {
         maxAzimuthAngleRatio = -1;
 
       // Populate pointcloud
-      while (i < mmwData.numObjOut) {
+      while (i < mmwData.numObjOut)
+      {
         if (((mmwData.header.version >> 24) & 0xFF) <
-            3) { // SDK version is older than 3.x
+            3)
+        { // SDK version is older than 3.x
           // get object range index
           memcpy(&mmwData.objOut.rangeIdx, &currentBufp->at(currentDatap),
                  sizeof(mmwData.objOut.rangeIdx));
@@ -460,9 +512,16 @@ void *DataUARTHandler::sortIncomingData(void) {
           temp[2] = (float)mmwData.objOut.z;
           temp[3] = (float)mmwData.objOut.dopplerIdx;
 
-          for (int j = 0; j < 4; j++) {
-            if (temp[j] > 32767) { temp[j] -= 65536; }
-            if (j < 3) { temp[j] = temp[j] / pow(2, mmwData.xyzQFormat); }
+          for (int j = 0; j < 4; j++)
+          {
+            if (temp[j] > 32767)
+            {
+              temp[j] -= 65536;
+            }
+            if (j < 3)
+            {
+              temp[j] = temp[j] / pow(2, mmwData.xyzQFormat);
+            }
           }
 
           temp[7] = temp[3] * vvel;
@@ -475,11 +534,11 @@ void *DataUARTHandler::sortIncomingData(void) {
 
           // Map mmWave sensor coordinates to ROS coordinate system
           // ROS standard coordinate system X-axis is forward which is the mmWave sensor Y-axis
-          RScan->points[i].x = temp[1]; 
+          RScan->points[i].x = temp[1];
           // ROS standard coordinate system Y-axis is left which is the mmWave sensor -(X-axis)
           RScan->points[i].y = -temp[0];
           // ROS standard coordinate system Z-axis is up which is the same as mmWave sensor Z-axis
-          RScan->points[i].z = temp[2]; 
+          RScan->points[i].z = temp[2];
 
           RScan->points[i].intensity = temp[5];
           RScan->points[i].velocity = temp[7];
@@ -497,7 +556,9 @@ void *DataUARTHandler::sortIncomingData(void) {
           radarscan.doppler_bin = tmp;
           radarscan.bearing = temp[6];
           radarscan.intensity = temp[5];
-        } else { // SDK version is 3.x+
+        }
+        else
+        { // SDK version is 3.x+
           // get object x-coordinate (meters)
           memcpy(&mmwData.objOut_cartes.x, &currentBufp->at(currentDatap),
                  sizeof(mmwData.objOut_cartes.x));
@@ -520,14 +581,14 @@ void *DataUARTHandler::sortIncomingData(void) {
 
           // Map mmWave sensor coordinates to ROS coordinate system
           // ROS standard coordinate system X-axis is forward which is the mmWave sensor Y-axis
-          RScan->points[i].x = mmwData.objOut_cartes.y; 
+          RScan->points[i].x = mmwData.objOut_cartes.y;
           // ROS standard coordinate system Y-axis is left which is the mmWave sensor -(X-axis)
-          RScan->points[i].y = -mmwData.objOut_cartes.x; 
+          RScan->points[i].y = -mmwData.objOut_cartes.x;
           // ROS standard coordinate system Z-axis is up which is the same as mmWave sensor Z-axis
-          RScan->points[i].z = mmwData.objOut_cartes.z; 
+          RScan->points[i].z = mmwData.objOut_cartes.z;
           RScan->points[i].velocity = mmwData.objOut_cartes.velocity;
-          RScan->points[i].range = sqrt(radarscan.x*radarscan.x +
-              radarscan.y*radarscan.y + radarscan.z*radarscan.z);
+          RScan->points[i].range = sqrt(radarscan.x * radarscan.x +
+                                        radarscan.y * radarscan.y + radarscan.z * radarscan.z);
 
           radarscan.header.frame_id = frameID;
           radarscan.header.stamp = rclcpp::Clock().now();
@@ -537,26 +598,30 @@ void *DataUARTHandler::sortIncomingData(void) {
           radarscan.y = -mmwData.objOut_cartes.x;
           radarscan.z = mmwData.objOut_cartes.z;
           radarscan.velocity = mmwData.objOut_cartes.velocity;
-          radarscan.range = sqrt(radarscan.x*radarscan.x +
-                  radarscan.y*radarscan.y + radarscan.z*radarscan.z);
+          radarscan.range = sqrt(radarscan.x * radarscan.x +
+                                 radarscan.y * radarscan.y + radarscan.z * radarscan.z);
 
-          radarscan.doppler_bin = (uint16_t)(
-              mmwData.detList.dopplerIdx + nd / 2);
+          radarscan.doppler_bin = (uint16_t)(mmwData.detList.dopplerIdx + nd / 2);
 
           radarscan.bearing = std::atan2(-mmwData.objOut_cartes.x,
-              mmwData.objOut_cartes.y) / M_PI * 180;
+                                         mmwData.objOut_cartes.y) /
+                              M_PI * 180;
 
-          radarscan.intensity = (float) mmwData.sideInfo.snr / 10.0;
+          radarscan.intensity = (float)mmwData.sideInfo.snr / 10.0;
 
           // For SDK 3.x, intensity is replaced by snr in sideInfo and is parsed
           // in the READ_SIDE_INFO code
         }
 
         if (((maxElevationAngleRatioSquared == -1) || (((RScan->points[i].z * RScan->points[i].z) /
-               (RScan->points[i].x * RScan->points[i].x + RScan->points[i].y * RScan->points[i].y)) <
-              maxElevationAngleRatioSquared)) && ((maxAzimuthAngleRatio == -1) ||
+                                                        (RScan->points[i].x * RScan->points[i].x + RScan->points[i].y * RScan->points[i].y)) <
+                                                       maxElevationAngleRatioSquared)) &&
+            ((maxAzimuthAngleRatio == -1) ||
              (fabs(RScan->points[i].y / RScan->points[i].x) < maxAzimuthAngleRatio)) &&
-            (RScan->points[i].x != 0)) { radar_scan_pub->publish(radarscan); }
+            (RScan->points[i].x != 0))
+        {
+          radar_scan_pub->publish(radarscan);
+        }
         i++;
       }
 
@@ -568,8 +633,10 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       // Make sure we already received and parsed detected obj list
       // (READ_OBJ_STRUCT)
-      if (mmwData.numObjOut > 0) {
-        for (i = 0; i < mmwData.numObjOut; i++) {
+      if (mmwData.numObjOut > 0)
+      {
+        for (i = 0; i < mmwData.numObjOut; i++)
+        {
           // get snr (unit is 0.1 steps of dB)
           memcpy(&mmwData.sideInfo.snr, &currentBufp->at(currentDatap),
                  sizeof(mmwData.sideInfo.snr));
@@ -581,14 +648,17 @@ void *DataUARTHandler::sortIncomingData(void) {
           currentDatap += (sizeof(mmwData.sideInfo.noise));
 
           // Use snr for "intensity" field (divide by 10 since unit of snr is 0.1dB)
-          RScan->points[i].intensity = (float)mmwData.sideInfo.snr / 10.0; 
+          RScan->points[i].intensity = (float)mmwData.sideInfo.snr / 10.0;
         }
-      } else // else just skip side info section if we have not already received
-             // and parsed detected obj list
+      }
+      else // else just skip side info section if we have not already received
+           // and parsed detected obj list
       {
         i = 0;
 
-        while (i++ < tlvLen - 1) {}
+        while (i++ < tlvLen - 1)
+        {
+        }
         currentDatap += tlvLen;
       }
       sorterState = CHECK_TLV_TYPE;
@@ -602,7 +672,9 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       i = 0;
 
-      while (i++ < tlvLen - 1) {}
+      while (i++ < tlvLen - 1)
+      {
+      }
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -611,7 +683,9 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       i = 0;
 
-      while (i++ < tlvLen - 1) {}
+      while (i++ < tlvLen - 1)
+      {
+      }
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -620,7 +694,9 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       i = 0;
 
-      while (i++ < tlvLen - 1) {}
+      while (i++ < tlvLen - 1)
+      {
+      }
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -629,7 +705,9 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       i = 0;
 
-      while (i++ < tlvLen - 1) {}
+      while (i++ < tlvLen - 1)
+      {
+      }
       currentDatap += tlvLen;
       sorterState = CHECK_TLV_TYPE;
       break;
@@ -639,18 +717,22 @@ void *DataUARTHandler::sortIncomingData(void) {
           mmwData.header.numTLVs) // Done parsing all received TLV sections
       {
         // Publish detected object pointcloud
-        if (mmwData.numObjOut > 0) {
+        if (mmwData.numObjOut > 0)
+        {
           j = 0;
-          for (i = 0; i < mmwData.numObjOut; i++) {
+          for (i = 0; i < mmwData.numObjOut; i++)
+          {
             // Keep point if elevation and azimuth angles are less than
             // specified max values (NOTE: The following calculations are done
             // using ROS standard coordinate system axis definitions where X is
             // forward and Y is left)
             if (((maxElevationAngleRatioSquared == -1) || (((RScan->points[i].z * RScan->points[i].z) /
-                   (RScan->points[i].x * RScan->points[i].x + RScan->points[i].y * RScan->points[i].y)) <
-                  maxElevationAngleRatioSquared)) && ((maxAzimuthAngleRatio == -1) ||
+                                                            (RScan->points[i].x * RScan->points[i].x + RScan->points[i].y * RScan->points[i].y)) <
+                                                           maxElevationAngleRatioSquared)) &&
+                ((maxAzimuthAngleRatio == -1) ||
                  (fabs(RScan->points[i].y / RScan->points[i].x) < maxAzimuthAngleRatio)) &&
-                (RScan->points[i].x != 0)) {
+                (RScan->points[i].x != 0))
+            {
               memcpy(&RScan->points[j], &RScan->points[i], sizeof(RScan->points[i]));
               j++;
             }
@@ -680,7 +762,8 @@ void *DataUARTHandler::sortIncomingData(void) {
         memcpy(&tlvLen, &currentBufp->at(currentDatap), sizeof(tlvLen));
         currentDatap += (sizeof(tlvLen));
 
-        switch (tlvType) {
+        switch (tlvType)
+        {
         case MMWDEMO_OUTPUT_MSG_NULL:
           break;
 
@@ -730,7 +813,8 @@ void *DataUARTHandler::sortIncomingData(void) {
 
       countSync++;
 
-      if (countSync == COUNT_SYNC_MAX) {
+      if (countSync == COUNT_SYNC_MAX)
+      {
         pthread_cond_signal(&countSync_max_cv);
       }
 
@@ -754,7 +838,8 @@ void *DataUARTHandler::sortIncomingData(void) {
   pthread_exit(NULL);
 }
 
-void DataUARTHandler::start(void) {
+void DataUARTHandler::start(void)
+{
 
   pthread_t uartThread, sorterThread, swapThread;
 
@@ -772,21 +857,24 @@ void DataUARTHandler::start(void) {
   /* Create independent threads each of which will execute function */
   iret1 =
       pthread_create(&uartThread, NULL, this->readIncomingData_helper, this);
-  if (iret1) {
+  if (iret1)
+  {
     printf("Error - pthread_create() return code: %d\n", iret1);
     rclcpp::shutdown();
   }
 
   iret2 =
       pthread_create(&sorterThread, NULL, this->sortIncomingData_helper, this);
-  if (iret2) {
+  if (iret2)
+  {
     printf("Error - pthread_create() return code: %d\n", iret2);
     rclcpp::shutdown();
   }
 
   iret3 =
       pthread_create(&swapThread, NULL, this->syncedBufferSwap_helper, this);
-  if (iret3) {
+  if (iret3)
+  {
     printf("Error - pthread_create() return code: %d\n", iret3);
     rclcpp::shutdown();
   }
@@ -809,20 +897,24 @@ void DataUARTHandler::start(void) {
   pthread_cond_destroy(&sort_go_cv);
 }
 
-void *DataUARTHandler::readIncomingData_helper(void *context) {
+void *DataUARTHandler::readIncomingData_helper(void *context)
+{
   return (static_cast<DataUARTHandler *>(context)->readIncomingData());
 }
 
-void *DataUARTHandler::sortIncomingData_helper(void *context) {
+void *DataUARTHandler::sortIncomingData_helper(void *context)
+{
   return (static_cast<DataUARTHandler *>(context)->sortIncomingData());
 }
 
-void *DataUARTHandler::syncedBufferSwap_helper(void *context) {
+void *DataUARTHandler::syncedBufferSwap_helper(void *context)
+{
   return (static_cast<DataUARTHandler *>(context)->syncedBufferSwap());
 }
 
 void DataUARTHandler::visualize(
-    const ti_mmwave_ros2_interfaces::msg::RadarScan &msg) {
+    const ti_mmwave_ros2_interfaces::msg::RadarScan &msg)
+{
   auto marker = visualization_msgs::msg::Marker();
 
   marker.header.frame_id = frameID;

@@ -51,7 +51,8 @@
 /*mmWave Driver Headers*/
 #include "ti_mmwave_ros2_interfaces/srv/mm_wave_cli.hpp"
 
-class mmWaveCommSrv : public rclcpp::Node {
+class mmWaveCommSrv : public rclcpp::Node
+{
 private:
   rclcpp::Service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>::SharedPtr commSrv;
   std::string mySerialPort;
@@ -59,7 +60,8 @@ private:
   std::string mmWaveCLIName;
 
 public:
-  mmWaveCommSrv() : rclcpp::Node("mmWaveCommSrvNode") {
+  mmWaveCommSrv() : rclcpp::Node("mmWaveCommSrvNode")
+  {
     mySerialPort = this->declare_parameter("command_port", "/dev/ttyACM0");
     myBaudRate = this->declare_parameter("command_rate", 115200);
     mmWaveCLIName = this->declare_parameter("mmWaveCLI_name", "mmWaveCLI");
@@ -98,7 +100,8 @@ public:
 
   void commSrv_cb(
       std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request> req,
-      std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response>res){
+      std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res)
+  {
 
     RCLCPP_DEBUG(this->get_logger(),
                  "mmWaveCommSrv: Port is \"%s\" and baud rate is %d",
@@ -107,37 +110,44 @@ public:
     /*Open Serial port and error check*/
     serial::Serial mySerialObject("", myBaudRate, serial::Timeout::simpleTimeout(1000));
     mySerialObject.setPort(mySerialPort.c_str());
-    try {
+    try
+    {
       mySerialObject.open();
-    } catch (std::exception &e1) {
+    }
+    catch (std::exception &e1)
+    {
       RCLCPP_INFO(
           this->get_logger(),
           "mmWaveCommSrv: Failed to open User serial port with error: %s",
           e1.what());
       RCLCPP_INFO(this->get_logger(),
                   "mmWaveCommSrv: Waiting 20 seconds before trying again...");
-      try {
+      try
+      {
         // Wait 20 seconds and try to open serial port again
         rclcpp::sleep_for(std::chrono::seconds(20));
         mySerialObject.open();
-      } catch (std::exception &e2) {
+      }
+      catch (std::exception &e2)
+      {
         RCLCPP_ERROR(this->get_logger(),
                      "mmWaveCommSrv: Failed second time to open User serial "
                      "port, error: %s",
                      e1.what());
         RCLCPP_INFO(this->get_logger(),
-            "mmWaveCommSrv: Port could not be opened. Port is \"%s\" and "
-            "baud rate is %d",
-            mySerialPort.c_str(), myBaudRate);
+                    "mmWaveCommSrv: Port could not be opened. Port is \"%s\" and "
+                    "baud rate is %d",
+                    mySerialPort.c_str(), myBaudRate);
       }
     }
 
     /*Read any previous pending response(s)*/
-    while (mySerialObject.available() > 0) {
+    while (mySerialObject.available() > 0)
+    {
       mySerialObject.readline(res->resp, 1024, ":/>");
       RCLCPP_INFO(this->get_logger(),
-          "mmWaveCommSrv: Received (previous) response from sensor: '%s'",
-          res->resp.c_str());
+                  "mmWaveCommSrv: Received (previous) response from sensor: '%s'",
+                  res->resp.c_str());
       res->resp = "";
     }
 
@@ -161,7 +171,8 @@ public:
   }
 };
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
   rclcpp::init(argc, argv);
 

@@ -60,35 +60,37 @@
 
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 
-namespace ti_mmwave_ros2_pkg {
+namespace ti_mmwave_ros2_pkg
+{
 
-class mmWaveDataHdl : public rclcpp::Node {
-public:
-  explicit mmWaveDataHdl(const rclcpp::NodeOptions &options);
+  class mmWaveDataHdl : public rclcpp::Node
+  {
+  public:
+    explicit mmWaveDataHdl(const rclcpp::NodeOptions &options);
 
-private:
-  std::shared_ptr<DataUARTHandler> DataHandler;
+  private:
+    std::shared_ptr<DataUARTHandler> DataHandler;
 
-  int nr;
-  int nd;
-  int ntx;
-  float fs;
-  float fc;
-  float BW;
-  float PRI;
-  float tfr;
-  float max_range;
-  float vrange;
-  float max_vel;
-  float vvel;
+    int nr;
+    int nd;
+    int ntx;
+    float fs;
+    float fc;
+    float BW;
+    float PRI;
+    float tfr;
+    float max_range;
+    float vrange;
+    float max_vel;
+    float vvel;
 
-  void onInit();
+    void onInit();
 
-  // char* mySerialPort;
+    // char* mySerialPort;
 
-  // int myBaudRate;
+    // int myBaudRate;
 
-}; // Class mmWaveDataHdl
+  }; // Class mmWaveDataHdl
 
 } // namespace ti_mmwave_ros2_pkg
 
