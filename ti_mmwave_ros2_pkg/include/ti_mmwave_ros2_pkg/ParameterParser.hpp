@@ -22,15 +22,13 @@ namespace ti_mmwave_ros2_pkg
   public:
     explicit ParameterParser(const rclcpp::NodeOptions &options);
 
-    void init(const std::string &ns);
+    void init();
 
     void ParamsParser(const std::string &srv);
 
     void CalParams();
 
-    void callbackGlobalParam(
-        std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>>
-            future);
+    void callbackGlobalParam(std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>> future);
 
   private:
     float startFreq;

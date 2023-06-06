@@ -61,11 +61,12 @@ int main(int argc, char **argv)
   rclcpp::executors::SingleThreadedExecutor exec;
   rclcpp::NodeOptions options;
 
+  // Print usage
   if (argc < 3)
   {
     std::cout << "mmWaveQuickConfig: usage: mmWaveQuickConfig "
                  "/file_directory/params.cfg"
-              << std::endl;
+                 << std::endl;
     return 1;
   }
   else
@@ -74,53 +75,55 @@ int main(int argc, char **argv)
 
   auto node = rclcpp::Node::make_shared("mmWaveQuickConfig");
 
-  std::string mmWaveCLIName, ns;
+  // Namespace
+  std::string mmWaveCLIName;
+
+  // CLI name
   mmWaveCLIName = node->declare_parameter("mmWaveCLI_name", "mmWaveCLI");
-  ns = node->declare_parameter("namespace", "");
+  auto mmWaveCLINameExpanded = rclcpp::expand_topic_or_service_name(mmWaveCLIName, node->get_name(), node->get_namespace(), true);
+  std::cout << "mmWaveCLIName : " << mmWaveCLINameExpanded << std::endl;
 
-  std::cout << "mmWaveCLIName : " << mmWaveCLIName << std::endl;
-
-  // service client
+  // Service client
   auto client = node->create_client<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>(
-      mmWaveCLIName);
+      mmWaveCLINameExpanded);
 
+  // Wait for client
   while (!client->wait_for_service(std::chrono::seconds(1)))
   {
     if (!rclcpp::ok())
     {
-      RCLCPP_ERROR(node->get_logger(),
-                   "client interrupted while waiting for service to appear.");
+      RCLCPP_ERROR(node->get_logger(), "client interrupted while waiting for service to appear.");
       return 1;
     }
     RCLCPP_INFO(node->get_logger(), "waiting for service to appear...");
   }
 
-  auto request = std::make_shared<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request>();
-
-  std::ifstream myParams;
 
   auto parser = std::make_shared<ti_mmwave_ros2_pkg::ParameterParser>(options);
-  parser->init(ns);
+  auto request = std::make_shared<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request>();
+
+  parser->init();
   exec.add_node(parser);
 
-  // wait for service to become available
+  // Wait for service to become available
   rclcpp::sleep_for(std::chrono::milliseconds(500));
 
-  myParams.open(argv[1]);
+  // Parameter configuration stream
+  std::ifstream paramConfigStream;
+  paramConfigStream.open(argv[1]);
 
-  if (myParams.is_open())
+  if (paramConfigStream.is_open())
   {
-    while (std::getline(myParams, request->comm))
+    while (std::getline(paramConfigStream, request->comm))
     {
       // Remove Windows carriage-return if present
-      request->comm.erase(
-          std::remove(request->comm.begin(), request->comm.end(), '\r'),
-          request->comm.end());
+      request->comm.erase(std::remove(request->comm.begin(), request->comm.end(), '\r'), request->comm.end());
+
       // Ignore comment lines (first non-space char is '%') or blank lines
       if (!(std::regex_match(request->comm, std::regex("^\\s*%.*")) ||
             std::regex_match(request->comm, std::regex("^\\s*"))))
       {
-
+        
         std::cout << "request->comm : " << request->comm << std::endl;
         auto result_future = client->async_send_request(request);
 
@@ -159,7 +162,7 @@ int main(int argc, char **argv)
     }
     parser->CalParams();
     exec.spin();
-    myParams.close();
+    paramConfigStream.close();
   }
   else
   {

@@ -44,17 +44,11 @@ namespace ti_mmwave_ros2_pkg
   ParameterParser::ParameterParser(const rclcpp::NodeOptions &options)
       : Node("parameter_parser", options) {}
 
-  void ParameterParser::init(const std::string &ns)
+  void ParameterParser::init()
   {
-    std::string client_name = "";
-    if (ns.compare("") != 0)
-    {
-      client_name = "/" + ns + "/mmWaveCommSrvNode";
-    }
-    else
-    {
-      client_name = "/mmWaveCommSrvNode";
-    }
+    auto client_name = rclcpp::expand_topic_or_service_name("mmWaveCommSrvNode", 
+                                                            this->get_name(), 
+                                                            this->get_namespace(), true);
 
     std::cout << "ParameterParser - client_name : " << client_name << std::endl;
     parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(this, client_name);
@@ -63,25 +57,29 @@ namespace ti_mmwave_ros2_pkg
     {
       if (!rclcpp::ok())
       {
-        RCLCPP_ERROR(this->get_logger(), "client interrupted while waiting for service to appear.");
+        RCLCPP_ERROR(this->get_logger(), "Client interrupted while waiting for service to appear.");
         exit(0);
       }
-      RCLCPP_INFO(this->get_logger(), "wwaiting for service to appear...");
+      RCLCPP_INFO(this->get_logger(), "Waiting for service to appear...");
     }
   }
 
   void ParameterParser::ParamsParser(const std::string &srv)
   {
 
-    std::vector<std::string> v;
+    int i = 0;
+    
+    std::string req;
+    std::string token;
     std::string s = srv;
     std::istringstream ss(s);
-    std::string token;
-    std::string req;
-    int i = 0;
+    std::vector<std::string> v;
+
     while (std::getline(ss, token, ' '))
     {
+
       v.push_back(token);
+
       if (i > 0)
       {
         if (!req.compare("profileCfg"))

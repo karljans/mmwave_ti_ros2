@@ -59,8 +59,8 @@ class mmWaveCommSrv : public rclcpp::Node
 {
 private:
   rclcpp::Service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>::SharedPtr commSrv;
-  std::string serial_port;
   int baudrate;
+  std::string serial_port;
   std::string mmWaveCLIName;
 
 public:
@@ -89,15 +89,17 @@ public:
     this->declare_parameter("max_doppler_vel", 9.90139);
     this->declare_parameter("doppler_vel_resolution", 0.618837);
 
-    RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_port = %s",
-                serial_port.c_str());
-    RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_rate = %d",
-                baudrate);
+    RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_port = %s", serial_port.c_str());
+    RCLCPP_INFO(this->get_logger(), "mmWaveCommSrv: command_rate = %d", baudrate);
 
-    // service server
-    commSrv = create_service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>(
-        mmWaveCLIName, std::bind(&mmWaveCommSrv::commSrv_cb, this,
-                                 std::placeholders::_1, std::placeholders::_2));
+    // Service server
+    auto mmWaveCLINameExpanded = rclcpp::expand_topic_or_service_name(mmWaveCLIName, this->get_name(), this->get_namespace(), true);
+    RCLCPP_INFO(this->get_logger(), "Creaing configurations service %s", mmWaveCLINameExpanded.c_str());
+
+    commSrv = create_service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>(mmWaveCLINameExpanded, 
+                                                                        std::bind(&mmWaveCommSrv::commSrv_cb, this,
+                                                                        std::placeholders::_1, 
+                                                                        std::placeholders::_2));
 
     RCLCPP_INFO(this->get_logger(), "mmWaveCommsrv: Finished onInit function");
   }
