@@ -782,8 +782,7 @@ void *DataUARTHandler::sortIncomingData(void)
       break;
 
     case CHECK_TLV_TYPE:
-      if (tlvCount++ >=
-          mmwData.header.numTLVs) // Done parsing all received TLV sections
+      if (tlvCount++ >= mmwData.header.numTLVs) // Done parsing all received TLV sections
       {
         // Publish detected object pointcloud
         if (mmwData.numObjOut > 0)
