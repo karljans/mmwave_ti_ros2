@@ -59,30 +59,32 @@
 namespace ti_mmwave_ros2_pkg
 {
 
-  class mmWaveDataHdl : public rclcpp::Node
-  {
-  public:
-    explicit mmWaveDataHdl(const rclcpp::NodeOptions &options);
+    class mmWaveDataHdl : public rclcpp::Node
+    {
+    public:
+        explicit mmWaveDataHdl(const rclcpp::NodeOptions &options);
 
-  private:
-    std::shared_ptr<DataUARTHandler> DataHandler;
+    private:
+        std::shared_ptr<DataUARTHandler> DataHandler;
 
-    int nr;
-    int nd;
-    int ntx;
-    float fs;
-    float fc;
-    float BW;
-    float PRI;
-    float tfr;
-    float max_range;
-    float vrange;
-    float max_vel;
-    float vvel;
+        int nr;
+        int nd;
+        int ntx;
+        float fs;
+        float fc;
+        float BW;
+        float PRI;
+        float tfr;
+        float max_range;
+        float vrange;
+        float max_vel;
+        float vvel;
 
-    void onInit();
+        void onInit();
 
-  }; // Class mmWaveDataHdl
+        rclcpp::QoS createQoSProfile();
+
+    }; // Class mmWaveDataHdl
 
 } // namespace ti_mmwave_ros2_pkg
 

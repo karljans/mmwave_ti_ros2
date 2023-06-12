@@ -16,39 +16,39 @@
 namespace ti_mmwave_ros2_pkg
 {
 
-  class ParameterParser : public rclcpp::Node
-  {
+    class ParameterParser : public rclcpp::Node
+    {
 
-  public:
-    explicit ParameterParser(const rclcpp::NodeOptions &options);
+    public:
+        explicit ParameterParser(const rclcpp::NodeOptions &options);
 
-    void init();
+        void init();
 
-    void ParamsParser(const std::string &srv);
+        void ParamsParser(const std::string &srv);
 
-    void CalParams();
+        void CalParams();
 
-    void callbackGlobalParam(std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>> future);
+        void callbackGlobalParam(std::shared_future<std::vector<rcl_interfaces::msg::SetParametersResult>> future);
 
-  private:
-    float startFreq;
-    float idleTime;
-    float adcStartTime;
-    float rampEndTime;
-    float freqSlopeConst;
-    float numAdcSamples;
-    float digOutSampleRate;
-    float rxGain;
+    private:
+        float startFreq;
+        float idleTime;
+        float adcStartTime;
+        float rampEndTime;
+        float freqSlopeConst;
+        float numAdcSamples;
+        float digOutSampleRate;
+        float rxGain;
 
-    int chirpStartIdx;
-    int chirpEndIdx;
-    int numLoops;
-    int numFrames;
-    float framePeriodicity;
+        int chirpStartIdx;
+        int chirpEndIdx;
+        int numLoops;
+        int numFrames;
+        float framePeriodicity;
 
-    std::shared_ptr<rclcpp::AsyncParametersClient>
-        parameters_client;
-  };
+        std::shared_ptr<rclcpp::AsyncParametersClient>
+            parameters_client;
+    };
 
 } // namespace ti_mmwave_ros2_pkg
 

@@ -60,27 +60,27 @@
 namespace ti_mmwave_ros2_pkg
 {
 
-   class mmWaveCommSrv : public rclcpp::Node
-   {
-   public:
-      explicit mmWaveCommSrv(const rclcpp::NodeOptions &options);
+    class mmWaveCommSrv : public rclcpp::Node
+    {
+    public:
+        explicit mmWaveCommSrv(const rclcpp::NodeOptions &options);
 
-      // explicit ~mmWaveCommSrv();
+        // explicit ~mmWaveCommSrv();
 
-   private:
-      void onInit();
+    private:
+        void onInit();
 
-      void commSrv_cb(std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request> req,
-                      std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res); 
+        void commSrv_cb(std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Request> req,
+                        std::shared_ptr<ti_mmwave_ros2_interfaces::srv::MMWaveCLI::Response> res);
 
-      rclcpp::Service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>::SharedPtr commSrv;
+        rclcpp::Service<ti_mmwave_ros2_interfaces::srv::MMWaveCLI>::SharedPtr commSrv;
 
-      std::string serial_port;
+        std::string serial_port;
 
-      int baudrate;
+        int baudrate;
 
-      std::string mmWaveCLIName;
-   }; // Class mmWaveCommSrv
+        std::string mmWaveCLIName;
+    }; // Class mmWaveCommSrv
 
 } // namespace ti_mmwave_rospkg
 

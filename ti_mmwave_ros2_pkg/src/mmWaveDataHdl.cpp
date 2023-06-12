@@ -55,86 +55,113 @@ static const std::string DEFAULT_FRAME_ID = "ti_mmwave";
 namespace ti_mmwave_ros2_pkg
 {
 
-  mmWaveDataHdl::mmWaveDataHdl(const rclcpp::NodeOptions &options)
-      : Node("mmWaveDataHdl", options)
-  {
-    onInit();
-  }
+    mmWaveDataHdl::mmWaveDataHdl(const rclcpp::NodeOptions &options)
+        : Node("mmWaveDataHdl", options)
+    {
+        onInit();
+    }
 
-  void mmWaveDataHdl::onInit()
-  {
-    std::string serial_port;
-    std::string frame_id;
-    std::string ns;
+    rclcpp::QoS mmWaveDataHdl::createQoSProfile()
+    {
+        // Set the history depth to 1 to keep only the latest message
+        size_t depth = 1;
 
-    int baudrate;
-    int max_allowed_elevation_angle_deg;
-    int max_allowed_azimuth_angle_deg;
+        // Set the reliability to reliable to ensure message delivery
+        rmw_qos_reliability_policy_t reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
 
+        // Set the durability to transient local to allow late-joining subscribers to receive the last message
+        rmw_qos_durability_policy_t durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
 
-    // Parameter declaration
-    serial_port = this->declare_parameter("data_port", DEFAULT_DATA_PORT);
-    baudrate = this->declare_parameter("data_rate", DEFAULT_DATA_RATE);
-    frame_id = this->declare_parameter("frame_id", DEFAULT_FRAME_ID);
+        // Set the liveliness to automatic with a lease duration of 1 second (adjust if needed)
+        rmw_qos_liveliness_policy_t liveliness = RMW_QOS_POLICY_LIVELINESS_AUTOMATIC;
+        rmw_time_t liveliness_lease_duration = {1, 0}; // 1 second
 
-    max_allowed_elevation_angle_deg = this->declare_parameter("max_allowed_elevation_angle_deg", 90);
-    max_allowed_azimuth_angle_deg = this->declare_parameter("max_allowed_azimuth_angle_deg", 90);
+        // Avoid ROS namespace conventions
+        bool avoid_ros_namespace_conventions = false;
 
-    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_port = %s",
-                serial_port.c_str());
+        // Create the QoS profile with the desired settings
+        rclcpp::QoS qos_profile = rclcpp::QoS(depth);
+        qos_profile.reliability(reliability);
+        qos_profile.durability(durability);
+        qos_profile.liveliness(liveliness);
+        qos_profile.liveliness_lease_duration(liveliness_lease_duration);
+        qos_profile.avoid_ros_namespace_conventions(avoid_ros_namespace_conventions);
 
-    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_rate = %d", baudrate);
-    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: max_allowed_elevation_angle_deg = %d",
-                max_allowed_elevation_angle_deg);
-    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: max_allowed_azimuth_angle_deg = %d",
-                max_allowed_azimuth_angle_deg);
+        return qos_profile;
+    }
 
+    void mmWaveDataHdl::onInit()
+    {
+        std::string serial_port;
+        std::string frame_id;
+        std::string ns;
 
-    // Calculate expanded topic names
-    auto pcl_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan_pcl",
-                                                          this->get_name(), this->get_namespace());
+        int baudrate;
+        int max_allowed_elevation_angle_deg;
+        int max_allowed_azimuth_angle_deg;
 
-    auto radar_scan_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan", this->get_name(), 
-                                                                 this->get_namespace());
+        // Parameter declaration
+        serial_port = this->declare_parameter("data_port", DEFAULT_DATA_PORT);
+        baudrate = this->declare_parameter("data_rate", DEFAULT_DATA_RATE);
+        frame_id = this->declare_parameter("frame_id", DEFAULT_FRAME_ID);
 
-    auto marker_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan_markers", 
-                                                             this->get_name(), this->get_namespace());
+        max_allowed_elevation_angle_deg = this->declare_parameter("max_allowed_elevation_angle_deg", 90);
+        max_allowed_azimuth_angle_deg = this->declare_parameter("max_allowed_azimuth_angle_deg", 90);
 
-    RCLCPP_INFO(this->get_logger(), "Radar PCL topic: " + pcl_topic);
-    RCLCPP_INFO(this->get_logger(), "Radarscan topic: " + radar_scan_topic);
-    RCLCPP_INFO(this->get_logger(), "Marker topic: " + marker_topic);
+        RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_port = %s",
+                    serial_port.c_str());
 
-    // Create a QoS profile using the sensor message preset
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+        RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_rate = %d", baudrate);
+        RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: max_allowed_elevation_angle_deg = %d",
+                    max_allowed_elevation_angle_deg);
+        RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: max_allowed_azimuth_angle_deg = %d",
+                    max_allowed_azimuth_angle_deg);
 
-    auto sensor_qos_profile = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos_profile));
-    sensor_qos_profile.get_rmw_qos_profile() = qos_profile;
+        // Calculate expanded topic names
+        auto pcl_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan_pcl",
+                                                              this->get_name(), this->get_namespace());
 
-    // Setup publishers
-    auto DataUARTHandler_pub = create_publisher<PointCloud2>(pcl_topic, sensor_qos_profile);
-    auto radar_scan_pub = create_publisher<RadarScan>(radar_scan_topic, sensor_qos_profile);
-    auto marker_pub = create_publisher<Marker>(marker_topic, sensor_qos_profile);
+        auto radar_scan_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan", this->get_name(),
+                                                                     this->get_namespace());
 
-    // Initialize the data handler class
-    DataHandler = std::make_shared<DataUARTHandler>();
+        auto marker_topic = rclcpp::expand_topic_or_service_name("ti_mmwave/radar_scan_markers",
+                                                                 this->get_name(), this->get_namespace());
 
-    DataHandler->onInit();
-    DataHandler->setPublishers(DataUARTHandler_pub, radar_scan_pub, marker_pub);
+        RCLCPP_INFO(this->get_logger(), "Radar PCL topic: " + pcl_topic);
+        RCLCPP_INFO(this->get_logger(), "Radarscan topic: " + radar_scan_topic);
+        RCLCPP_INFO(this->get_logger(), "Marker topic: " + marker_topic);
 
-    DataHandler->setFrameID((char *)frame_id.c_str());
-    DataHandler->setUARTPort((char *)serial_port.c_str());
-    DataHandler->setBaudRate(baudrate);
-    DataHandler->setMaxAllowedElevationAngleDeg(max_allowed_elevation_angle_deg);
-    DataHandler->setMaxAllowedAzimuthAngleDeg(max_allowed_azimuth_angle_deg);
+        // Create a QoS profile using the sensor message preset
+        // rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
 
-    // Start the node
-    rclcpp::sleep_for(std::chrono::milliseconds(200));
-    rclcpp::spin_some(DataHandler);
-    
-    // Start data handler
-    DataHandler->start();
-    RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: Finished onInit function");
-  }
+        auto sensor_qos_profile = createQoSProfile(); //rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos_profile));
+        // sensor_qos_profile.get_rmw_qos_profile() = qos_profile;
+
+        // Setup publishers
+        auto DataUARTHandler_pub = create_publisher<PointCloud2>(pcl_topic, sensor_qos_profile);
+        auto radar_scan_pub = create_publisher<RadarScan>(radar_scan_topic, sensor_qos_profile);
+        auto marker_pub = create_publisher<Marker>(marker_topic, sensor_qos_profile);
+
+        // Initialize the data handler class
+        DataHandler = std::make_shared<DataUARTHandler>();
+
+        DataHandler->onInit();
+        DataHandler->setPublishers(DataUARTHandler_pub, radar_scan_pub, marker_pub);
+
+        DataHandler->setFrameID((char *)frame_id.c_str());
+        DataHandler->setUARTPort((char *)serial_port.c_str());
+        DataHandler->setBaudRate(baudrate);
+        DataHandler->setMaxAllowedElevationAngleDeg(max_allowed_elevation_angle_deg);
+        DataHandler->setMaxAllowedAzimuthAngleDeg(max_allowed_azimuth_angle_deg);
+
+        // Start the node
+        rclcpp::sleep_for(std::chrono::milliseconds(200));
+        rclcpp::spin_some(DataHandler);
+
+        // Start data handler
+        DataHandler->start();
+        RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: Finished onInit function");
+    }
 }
 
 // Register the component with class_loader.

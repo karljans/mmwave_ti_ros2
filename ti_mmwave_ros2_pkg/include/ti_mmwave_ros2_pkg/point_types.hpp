@@ -12,15 +12,15 @@
 /* customized structure X, Y, Z, Intensity, Velocity, Range, Bearing */
 namespace radar_pcl
 {
-  struct PointXYZIVRB
-  {
-    PCL_ADD_POINT4D;
-    float intensity;
-    float velocity;                 // velocity in cartesian
-    float range;                    // range in cartesian
-    float bearing;                    // bearing of the object in degrees
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // ensure proper alignment
-  } EIGEN_ALIGN16;
+    struct PointXYZIVRB
+    {
+        PCL_ADD_POINT4D;
+        float intensity;
+        float velocity;                 // velocity in cartesian
+        float range;                    // range in cartesian
+        float bearing;                  // bearing of the object in degrees
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW // ensure proper alignment
+    } EIGEN_ALIGN16;
 } // namespace radar_pcl
 
 POINT_CLOUD_REGISTER_POINT_STRUCT(radar_pcl::PointXYZIVRB,
