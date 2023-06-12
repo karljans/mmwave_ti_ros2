@@ -61,11 +61,8 @@ namespace ti_mmwave_ros2_pkg
         onInit();
     }
 
-    rclcpp::QoS mmWaveDataHdl::createQoSProfile()
+    rclcpp::QoS mmWaveDataHdl::createQoSProfile(size_t fifoDepth, uint livelessLeaseSec, uint livelessLeaseNanoSec)
     {
-        // Set the history depth to 1 to keep only the latest message
-        size_t depth = 1;
-
         // Set the reliability to reliable to ensure message delivery
         rmw_qos_reliability_policy_t reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
 
@@ -74,13 +71,13 @@ namespace ti_mmwave_ros2_pkg
 
         // Set the liveliness to automatic with a lease duration of 1 second (adjust if needed)
         rmw_qos_liveliness_policy_t liveliness = RMW_QOS_POLICY_LIVELINESS_AUTOMATIC;
-        rmw_time_t liveliness_lease_duration = {1, 0}; // 1 second
+        rmw_time_t liveliness_lease_duration = {livelessLeaseSec, livelessLeaseNanoSec}; // 1 second
 
         // Avoid ROS namespace conventions
         bool avoid_ros_namespace_conventions = false;
 
         // Create the QoS profile with the desired settings
-        rclcpp::QoS qos_profile = rclcpp::QoS(depth);
+        rclcpp::QoS qos_profile = rclcpp::QoS(fifoDepth);
         qos_profile.reliability(reliability);
         qos_profile.durability(durability);
         qos_profile.liveliness(liveliness);
@@ -100,6 +97,10 @@ namespace ti_mmwave_ros2_pkg
         int max_allowed_elevation_angle_deg;
         int max_allowed_azimuth_angle_deg;
 
+        size_t fifoDepth = 1;
+        uint livelessLeaseSec = 1;
+        uint livelessLeaseNanoSec = 0;
+
         // Parameter declaration
         serial_port = this->declare_parameter("data_port", DEFAULT_DATA_PORT);
         baudrate = this->declare_parameter("data_rate", DEFAULT_DATA_RATE);
@@ -107,6 +108,10 @@ namespace ti_mmwave_ros2_pkg
 
         max_allowed_elevation_angle_deg = this->declare_parameter("max_allowed_elevation_angle_deg", 90);
         max_allowed_azimuth_angle_deg = this->declare_parameter("max_allowed_azimuth_angle_deg", 90);
+        
+        fifoDepth = this->declare_parameter("fifoDepth", 1);
+        livelessLeaseSec = this->declare_parameter("livelessLeaseSec", 1);
+        livelessLeaseNanoSec = this->declare_parameter("livelessLeaseNanoSec", 0);
 
         RCLCPP_INFO(this->get_logger(), "mmWaveDataHdl: data_port = %s",
                     serial_port.c_str());
@@ -132,10 +137,7 @@ namespace ti_mmwave_ros2_pkg
         RCLCPP_INFO(this->get_logger(), "Marker topic: " + marker_topic);
 
         // Create a QoS profile using the sensor message preset
-        // rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-
-        auto sensor_qos_profile = createQoSProfile(); //rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos_profile));
-        // sensor_qos_profile.get_rmw_qos_profile() = qos_profile;
+        auto sensor_qos_profile = createQoSProfile(fifoDepth, livelessLeaseSec, livelessLeaseNanoSec);
 
         // Setup publishers
         auto DataUARTHandler_pub = create_publisher<PointCloud2>(pcl_topic, sensor_qos_profile);

@@ -82,7 +82,7 @@ namespace ti_mmwave_ros2_pkg
 
         void onInit();
 
-        rclcpp::QoS createQoSProfile();
+        rclcpp::QoS createQoSProfile(size_t fifoDepth, uint livelessLeaseSec, uint livelessLeaseNanoSec);
 
     }; // Class mmWaveDataHdl
 
