@@ -14,11 +14,14 @@
   <depend>sensor_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>pcl_ros</depend>
+  <build_depend>serial</build_depend>
   <depend>ti_mmwave_ros2_interfaces</depend>
+
 
   <exec_depend>rosidl_default_runtime</exec_depend>
   <build_depend>rosidl_default_generators</build_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
+  <exec_depend>serial</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
